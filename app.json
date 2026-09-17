@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Budget & Walking Tracker",
+    "name": "QiddasumTrack",
     "slug": "budget-walking-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -34,6 +34,11 @@
       "expo-sqlite",
       "expo-document-picker",
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b97f694c-c438-4917-b13f-923c93566628"
+      }
+    }
   }
 }
