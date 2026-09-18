@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { HorizontalBarItem } from '../../types';
 import { formatCurrency } from '../../utils/dateUtils';
+import { THEME } from '../../theme/colors';
+import { AnimatedPressable } from '../AnimatedComponents';
 
 interface HorizontalBarChartProps {
   items: HorizontalBarItem[];
@@ -31,22 +33,22 @@ export const HorizontalBarChart: React.FC<HorizontalBarChartProps> = ({
     <View style={styles.container}>
       {total !== undefined && (
         <View style={styles.totalHeader}>
-          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalLabel}>Total Expenses</Text>
           <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
         </View>
       )}
 
       {items.map((item) => {
-        const barWidthPercent = Math.max(4, Math.round((item.amount / maxAmount) * 100));
+        const barWidthPercent = Math.max(3, Math.round((item.amount / maxAmount) * 100));
         const isClickable = !item.isRecurring && !!onItemPress;
 
         return (
-          <TouchableOpacity
+          <AnimatedPressable
             key={item.id}
             style={[styles.row, isClickable && styles.rowClickable]}
             disabled={!isClickable}
             onPress={() => isClickable && onItemPress?.(item)}
-            activeOpacity={0.7}
+            scaleTo={isClickable ? 0.98 : 1}
           >
             <View style={styles.topLine}>
               <View style={styles.nameContainer}>
@@ -62,7 +64,7 @@ export const HorizontalBarChart: React.FC<HorizontalBarChartProps> = ({
 
               <View style={styles.amountContainer}>
                 <Text style={styles.amountText}>{formatCurrency(item.amount)}</Text>
-                {isClickable && <ChevronRight size={16} color="#94A3B8" style={{ marginLeft: 4 }} />}
+                {isClickable && <ChevronRight size={14} color={THEME.text.tertiary} style={{ marginLeft: 4 }} />}
               </View>
             </View>
 
@@ -73,7 +75,7 @@ export const HorizontalBarChart: React.FC<HorizontalBarChartProps> = ({
                   styles.barFill,
                   {
                     width: `${barWidthPercent}%`,
-                    backgroundColor: item.color || '#EF4444',
+                    backgroundColor: item.isRecurring ? THEME.accent.recurring : (item.color || THEME.accent.expense),
                   },
                 ]}
               />
@@ -81,9 +83,9 @@ export const HorizontalBarChart: React.FC<HorizontalBarChartProps> = ({
 
             <View style={styles.bottomLine}>
               <Text style={styles.percentText}>{item.percentage}% of total</Text>
-              {isClickable && <Text style={styles.drilldownHint}>Tap for subtypes</Text>}
+              {isClickable && <Text style={styles.drilldownHint}>Details</Text>}
             </View>
-          </TouchableOpacity>
+          </AnimatedPressable>
         );
       })}
     </View>
@@ -92,51 +94,50 @@ export const HorizontalBarChart: React.FC<HorizontalBarChartProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   totalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 12,
-    marginBottom: 12,
+    paddingBottom: 10,
+    marginBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: THEME.bg.border,
   },
   totalLabel: {
-    color: '#94A3B8',
-    fontSize: 14,
+    color: THEME.text.secondary,
+    fontSize: 13,
     fontWeight: '500',
   },
   totalValue: {
-    color: '#F8FAFC',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: THEME.text.primary,
+    fontSize: 16,
+    fontWeight: '700',
   },
   emptyContainer: {
-    padding: 32,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: THEME.bg.card,
     borderRadius: 12,
-    marginVertical: 8,
+    marginVertical: 4,
   },
   emptyText: {
-    color: '#94A3B8',
-    fontSize: 14,
-    fontStyle: 'italic',
+    color: THEME.text.tertiary,
+    fontSize: 13,
     textAlign: 'center',
   },
   row: {
-    marginBottom: 14,
-    backgroundColor: '#1E293B',
+    marginBottom: 8,
+    backgroundColor: THEME.bg.card,
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   rowClickable: {
-    borderColor: '#475569',
+    borderColor: THEME.bg.borderLight,
   },
   topLine: {
     flexDirection: 'row',
@@ -150,22 +151,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   nameText: {
-    color: '#F8FAFC',
-    fontSize: 15,
+    color: THEME.text.primary,
+    fontSize: 14,
     fontWeight: '600',
     marginRight: 8,
   },
   recurringBadge: {
-    backgroundColor: '#312E81',
+    backgroundColor: 'rgba(129, 140, 248, 0.15)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#6366F1',
+    borderColor: 'rgba(129, 140, 248, 0.3)',
   },
   recurringBadgeText: {
-    color: '#A5B4FC',
-    fontSize: 10,
+    color: THEME.accent.recurring,
+    fontSize: 9,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
@@ -174,19 +175,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   amountText: {
-    color: '#F8FAFC',
-    fontSize: 15,
+    color: THEME.text.primary,
+    fontSize: 14,
     fontWeight: '700',
   },
   barTrack: {
-    height: 8,
-    backgroundColor: '#0F172A',
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: THEME.bg.input,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 3,
   },
   bottomLine: {
     flexDirection: 'row',
@@ -195,11 +196,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   percentText: {
-    color: '#94A3B8',
+    color: THEME.text.tertiary,
     fontSize: 11,
   },
   drilldownHint: {
-    color: '#38BDF8',
+    color: THEME.accent.blue,
     fontSize: 11,
     fontWeight: '500',
   },

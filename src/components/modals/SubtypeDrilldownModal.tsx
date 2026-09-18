@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Modal, ScrollView } from 'react-native';
 import { X } from 'lucide-react-native';
 import { HorizontalBarItem } from '../../types';
 import { HorizontalBarChart } from '../charts/HorizontalBarChart';
+import { THEME } from '../../theme/colors';
+import { AnimatedPressable } from '../AnimatedComponents';
 
 interface SubtypeDrilldownModalProps {
   visible: boolean;
@@ -30,9 +32,9 @@ export const SubtypeDrilldownModal: React.FC<SubtypeDrilldownModalProps> = ({
               <Text style={styles.title}>{categoryName} Breakdown</Text>
               <Text style={styles.subtitle}>{monthName} Subtypes</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={22} color="#94A3B8" />
-            </TouchableOpacity>
+            <AnimatedPressable onPress={onClose} style={styles.closeBtn}>
+              <X size={20} color={THEME.text.secondary} />
+            </AnimatedPressable>
           </View>
 
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
@@ -55,13 +57,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#1E293B',
+    backgroundColor: THEME.bg.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     maxHeight: '80%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   header: {
     flexDirection: 'row',
@@ -70,20 +72,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: THEME.bg.border,
   },
   title: {
-    color: '#F8FAFC',
-    fontSize: 18,
+    color: THEME.text.primary,
+    fontSize: 17,
     fontWeight: '700',
   },
   subtitle: {
-    color: '#38BDF8',
+    color: THEME.text.secondary,
     fontSize: 13,
     marginTop: 2,
   },
   closeBtn: {
-    padding: 4,
+    padding: 6,
   },
   body: {
     marginBottom: 10,

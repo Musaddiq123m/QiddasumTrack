@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react-native';
 import { formatMonthYear, getMonthKey } from '../utils/dateUtils';
+import { THEME } from '../theme/colors';
+import { AnimatedPressable } from './AnimatedComponents';
 
 interface DateNavigatorProps {
   currentDate: Date;
@@ -20,33 +22,33 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
+      <AnimatedPressable
         style={styles.navButton}
         onPress={onPrevMonth}
-        activeOpacity={0.7}
+        scaleTo={0.92}
         accessibilityLabel="Previous month"
       >
-        <ChevronLeft size={22} color="#F8FAFC" />
-      </TouchableOpacity>
+        <ChevronLeft size={18} color={THEME.text.secondary} />
+      </AnimatedPressable>
 
       <View style={styles.centerContainer}>
         <Text style={styles.monthText}>{formatMonthYear(currentDate)}</Text>
         {!isCurrentMonth && onResetToday && (
-          <TouchableOpacity style={styles.todayBadge} onPress={onResetToday} activeOpacity={0.7}>
-            <RotateCcw size={10} color="#38BDF8" style={{ marginRight: 4 }} />
+          <AnimatedPressable style={styles.todayBadge} onPress={onResetToday} scaleTo={0.94}>
+            <RotateCcw size={10} color={THEME.text.secondary} style={{ marginRight: 4 }} />
             <Text style={styles.todayBadgeText}>Current</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
         )}
       </View>
 
-      <TouchableOpacity
+      <AnimatedPressable
         style={styles.navButton}
         onPress={onNextMonth}
-        activeOpacity={0.7}
+        scaleTo={0.92}
         accessibilityLabel="Next month"
       >
-        <ChevronRight size={22} color="#F8FAFC" />
-      </TouchableOpacity>
+        <ChevronRight size={18} color={THEME.text.secondary} />
+      </AnimatedPressable>
     </View>
   );
 };
@@ -56,46 +58,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E293B',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 14,
+    backgroundColor: THEME.bg.card,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     marginHorizontal: 16,
-    marginVertical: 10,
+    marginVertical: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   navButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#334155',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: THEME.bg.input,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   centerContainer: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
     flexDirection: 'row',
   },
   monthText: {
-    color: '#F8FAFC',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    color: THEME.text.primary,
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   todayBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: THEME.bg.chip,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 8,
     marginLeft: 8,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderColor: THEME.bg.border,
   },
   todayBadgeText: {
-    color: '#38BDF8',
+    color: THEME.text.secondary,
     fontSize: 10,
     fontWeight: '600',
   },

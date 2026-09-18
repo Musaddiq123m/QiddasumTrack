@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import Svg, { Path, G, Circle } from 'react-native-svg';
+import { View, Text, StyleSheet } from 'react-native';
+import Svg, { Path, G } from 'react-native-svg';
 import { PieSlice } from '../../types';
 import { formatCurrency } from '../../utils/dateUtils';
+import { THEME } from '../../theme/colors';
 
 interface PieChartProps {
   slices: PieSlice[];
@@ -14,7 +15,7 @@ interface PieChartProps {
 export const PieChart: React.FC<PieChartProps> = ({
   slices,
   total,
-  size = 220,
+  size = 200,
   emptyMessage = 'No income recorded for this month.',
 }) => {
   if (!slices || slices.length === 0 || total === 0) {
@@ -26,26 +27,23 @@ export const PieChart: React.FC<PieChartProps> = ({
   }
 
   const radius = size / 2;
-  const innerRadius = radius * 0.58;
+  const innerRadius = radius * 0.62;
   const cx = radius;
   const cy = radius;
 
-  // Compute SVG arc paths
-  let currentAngle = -Math.PI / 2; // start from top (12 o'clock)
+  let currentAngle = -Math.PI / 2;
 
-  const paths = slices.map((slice) => {
+  const paths = slices.map((slice, idx) => {
     const sliceAngle = (slice.value / total) * (2 * Math.PI);
     const startAngle = currentAngle;
     const endAngle = currentAngle + sliceAngle;
     currentAngle = endAngle;
 
-    // Outer arc points
     const x1 = cx + radius * Math.cos(startAngle);
     const y1 = cy + radius * Math.sin(startAngle);
     const x2 = cx + radius * Math.cos(endAngle);
     const y2 = cy + radius * Math.sin(endAngle);
 
-    // Inner arc points
     const ix1 = cx + innerRadius * Math.cos(endAngle);
     const iy1 = cy + innerRadius * Math.sin(endAngle);
     const ix2 = cx + innerRadius * Math.cos(startAngle);
@@ -53,11 +51,12 @@ export const PieChart: React.FC<PieChartProps> = ({
 
     const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
 
-    // If slice takes up almost the full circle (>= 99.9%)
+    const sliceColor = slice.color || THEME.chartPalette[idx % THEME.chartPalette.length];
+
     if (sliceAngle >= 2 * Math.PI - 0.001) {
       return {
         path: `M ${cx} ${cy - radius} A ${radius} ${radius} 0 1 1 ${cx} ${cy + radius} A ${radius} ${radius} 0 1 1 ${cx} ${cy - radius} Z`,
-        color: slice.color,
+        color: sliceColor,
       };
     }
 
@@ -69,7 +68,7 @@ export const PieChart: React.FC<PieChartProps> = ({
       'Z',
     ].join(' ');
 
-    return { path: pathData, color: slice.color };
+    return { path: pathData, color: sliceColor };
   });
 
   return (
@@ -78,32 +77,39 @@ export const PieChart: React.FC<PieChartProps> = ({
         <Svg width={size} height={size}>
           <G>
             {paths.map((p, idx) => (
-              <Path key={`slice-${idx}`} d={p.path} fill={p.color} stroke="#0F172A" strokeWidth={2} />
+              <Path
+                key={`slice-${idx}`}
+                d={p.path}
+                fill={p.color}
+                stroke={THEME.bg.card}
+                strokeWidth={2}
+              />
             ))}
           </G>
         </Svg>
 
-        {/* Center label inside donut */}
         <View style={styles.centerLabel}>
-          <Text style={styles.centerSub}>Total Income</Text>
+          <Text style={styles.centerSub}>Total</Text>
           <Text style={styles.centerValue} numberOfLines={1}>
             {formatCurrency(total)}
           </Text>
         </View>
       </View>
 
-      {/* Legend list */}
       <View style={styles.legendContainer}>
-        {slices.map((slice, idx) => (
-          <View key={`legend-${idx}`} style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: slice.color }]} />
-            <Text style={styles.legendName} numberOfLines={1}>
-              {slice.label}
-            </Text>
-            <Text style={styles.legendPercent}>{slice.percentage}%</Text>
-            <Text style={styles.legendAmount}>{formatCurrency(slice.value)}</Text>
-          </View>
-        ))}
+        {slices.map((slice, idx) => {
+          const color = slice.color || THEME.chartPalette[idx % THEME.chartPalette.length];
+          return (
+            <View key={`legend-${idx}`} style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: color }]} />
+              <Text style={styles.legendName} numberOfLines={1}>
+                {slice.label}
+              </Text>
+              <Text style={styles.legendPercent}>{slice.percentage}%</Text>
+              <Text style={styles.legendAmount}>{formatCurrency(slice.value)}</Text>
+            </View>
+          );
+        })}
       </View>
     </View>
   );
@@ -112,72 +118,71 @@ export const PieChart: React.FC<PieChartProps> = ({
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   centerLabel: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 100,
+    width: 110,
   },
   centerSub: {
-    color: '#94A3B8',
+    color: THEME.text.tertiary,
     fontSize: 10,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
   centerValue: {
-    color: '#F8FAFC',
+    color: THEME.text.primary,
     fontSize: 13,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginTop: 2,
     textAlign: 'center',
   },
   legendContainer: {
     width: '100%',
-    marginTop: 20,
-    paddingHorizontal: 8,
+    marginTop: 16,
+    paddingHorizontal: 4,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: THEME.bg.border,
   },
   legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     marginRight: 8,
   },
   legendName: {
-    color: '#F8FAFC',
+    color: THEME.text.primary,
     fontSize: 13,
     fontWeight: '500',
     flex: 1,
   },
   legendPercent: {
-    color: '#94A3B8',
+    color: THEME.text.secondary,
     fontSize: 12,
-    marginRight: 12,
+    marginRight: 10,
   },
   legendAmount: {
-    color: '#10B981',
+    color: THEME.text.primary,
     fontSize: 13,
     fontWeight: '600',
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: THEME.bg.card,
     borderRadius: 12,
-    marginVertical: 8,
+    marginVertical: 4,
     width: '100%',
   },
   emptyText: {
-    color: '#94A3B8',
-    fontSize: 14,
-    fontStyle: 'italic',
+    color: THEME.text.tertiary,
+    fontSize: 13,
   },
 });

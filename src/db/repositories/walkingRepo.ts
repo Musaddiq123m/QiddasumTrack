@@ -19,6 +19,12 @@ export class WalkingRepo {
     );
   }
 
+  static getTotalCount(): number {
+    const db = getDB();
+    const row = db.getFirst<{ cnt: number }>('SELECT COUNT(*) as cnt FROM walking_records;');
+    return row ? Number(row.cnt) : 0;
+  }
+
   static getForDate(dateStr: string): WalkingRecord[] {
     const db = getDB();
     return db.getAll<WalkingRecord>(

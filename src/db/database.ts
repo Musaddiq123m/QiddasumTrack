@@ -147,12 +147,28 @@ export class MemoryDatabase implements IDatabase {
 
     // income_types
     if (cleanSql.includes('FROM income_types')) {
-      return [...this.tables.income_types].sort((a, b) => a.name.localeCompare(b.name)) as any;
+      let list = [...this.tables.income_types];
+      if (cleanSql.includes('WHERE id = ?')) {
+        list = list.filter((t) => t.id === params[0]);
+      }
+      if (cleanSql.includes('LOWER(name) = LOWER(?)')) {
+        const nameParam = (params[0] || '').toLowerCase();
+        list = list.filter((t) => t.name.toLowerCase() === nameParam);
+      }
+      return list.sort((a, b) => a.name.localeCompare(b.name)) as any;
     }
 
     // expense_types
     if (cleanSql.includes('FROM expense_types')) {
-      return [...this.tables.expense_types].sort((a, b) => a.name.localeCompare(b.name)) as any;
+      let list = [...this.tables.expense_types];
+      if (cleanSql.includes('WHERE id = ?')) {
+        list = list.filter((t) => t.id === params[0]);
+      }
+      if (cleanSql.includes('LOWER(name) = LOWER(?)')) {
+        const nameParam = (params[0] || '').toLowerCase();
+        list = list.filter((t) => t.name.toLowerCase() === nameParam);
+      }
+      return list.sort((a, b) => a.name.localeCompare(b.name)) as any;
     }
 
     // expense_subtypes
@@ -175,14 +191,22 @@ export class MemoryDatabase implements IDatabase {
         const it = this.tables.income_types.find((t) => t.id === ir.type_id);
         return { ...ir, type_name: it?.name || 'Unknown' };
       });
-      if (cleanSql.includes('date LIKE ?')) {
+      if (cleanSql.includes('WHERE ir.id = ?') || cleanSql.includes('WHERE id = ?')) {
+        list = list.filter((r) => r.id === params[0]);
+      } else if (cleanSql.includes('date LIKE ?')) {
         const prefix = (params[0] || '').replace('%', '');
         list = list.filter((r) => r.date.startsWith(prefix));
       } else if (cleanSql.includes('date >= ?') && cleanSql.includes('date <= ?')) {
         const [start, end] = params;
         list = list.filter((r) => r.date >= start && r.date <= end);
       }
-      return list.sort((a, b) => b.date.localeCompare(a.date) || b.created_at - a.created_at) as any;
+      list.sort((a, b) => b.date.localeCompare(a.date) || b.created_at - a.created_at);
+      if (cleanSql.includes('LIMIT ?')) {
+        const limit = params[params.length - 2];
+        const offset = params[params.length - 1];
+        return list.slice(offset, offset + limit) as any;
+      }
+      return list as any;
     }
 
     // expense_records
@@ -196,7 +220,9 @@ export class MemoryDatabase implements IDatabase {
           subtype_name: es?.name || null,
         };
       });
-      if (cleanSql.includes('date LIKE ?')) {
+      if (cleanSql.includes('WHERE er.id = ?') || cleanSql.includes('WHERE id = ?')) {
+        list = list.filter((r) => r.id === params[0]);
+      } else if (cleanSql.includes('date LIKE ?')) {
         const prefix = (params[0] || '').replace('%', '');
         list = list.filter((r) => r.date.startsWith(prefix));
       } else if (cleanSql.includes('date >= ?') && cleanSql.includes('date <= ?')) {
@@ -214,16 +240,28 @@ export class MemoryDatabase implements IDatabase {
 
     // recurring_expenses
     if (cleanSql.includes('FROM recurring_expenses')) {
-      return [...this.tables.recurring_expenses].sort((a, b) => b.start_date.localeCompare(a.start_date)) as any;
+      let list = [...this.tables.recurring_expenses];
+      if (cleanSql.includes('WHERE id = ?')) {
+        list = list.filter((r) => r.id === params[0]);
+      }
+      return list.sort((a, b) => b.start_date.localeCompare(a.start_date)) as any;
     }
 
     // walking_records
     if (cleanSql.includes('FROM walking_records')) {
       let list = [...this.tables.walking_records];
-      if (cleanSql.includes('date = ?')) {
+      if (cleanSql.includes('COUNT(*)')) {
+        return [{ cnt: list.length }] as any;
+      }
+      if (cleanSql.includes('WHERE id = ?')) {
+        list = list.filter((r) => r.id === params[0]);
+      } else if (cleanSql.includes('date = ?')) {
         list = list.filter((r) => r.date === params[0]);
       } else if (cleanSql.includes('date >= ?') && cleanSql.includes('date <= ?')) {
         list = list.filter((r) => r.date >= params[0] && r.date <= params[1]);
+      } else if (cleanSql.includes('date LIKE ?')) {
+        const prefix = (params[0] || '').replace('%', '');
+        list = list.filter((r) => r.date.startsWith(prefix));
       }
       if (cleanSql.includes('DISTINCT date')) {
         const uniqueDates = Array.from(new Set(list.map((r) => r.date))).sort();

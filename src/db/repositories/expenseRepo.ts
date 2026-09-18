@@ -11,17 +11,9 @@ import { generateUUID } from '../schema';
 import { RecurringRepo } from './recurringRepo';
 import { formatDisplayDate, getPast12Months } from '../../utils/dateUtils';
 
-const EXPENSE_PALETTE = [
-  '#EF4444', // Red
-  '#F97316', // Orange
-  '#F59E0B', // Amber
-  '#8B5CF6', // Purple
-  '#EC4899', // Pink
-  '#3B82F6', // Blue
-  '#10B981', // Emerald
-  '#06B6D4', // Cyan
-  '#64748B', // Slate
-];
+import { THEME } from '../../theme/colors';
+
+const EXPENSE_PALETTE = THEME.chartPalette;
 
 export class ExpenseRepo {
   // --- Category Types ---

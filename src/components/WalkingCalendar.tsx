@@ -1,15 +1,17 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import {
   getDaysInMonth,
   getFirstDayOfMonth,
   getTodayString,
   padZero,
 } from '../utils/dateUtils';
+import { THEME } from '../theme/colors';
+import { AnimatedPressable } from './AnimatedComponents';
 
 interface WalkingCalendarProps {
   year: number;
-  month: number; // 1 - 12
+  month: number;
   walkedDates: Set<string>;
   selectedDate: string | null;
   onSelectDate: (date: string) => void;
@@ -26,10 +28,8 @@ export const WalkingCalendar: React.FC<WalkingCalendarProps> = ({
   const today = getTodayString();
 
   const daysInMonth = getDaysInMonth(year, month);
-  // getFirstDayOfMonth returns 0 for Sunday. We want Monday = 0
   const firstDay = (getFirstDayOfMonth(year, month) + 6) % 7;
 
-  // Build grid slots
   const slots: (number | null)[] = [];
   for (let i = 0; i < firstDay; i++) {
     slots.push(null);
@@ -43,9 +43,9 @@ export const WalkingCalendar: React.FC<WalkingCalendarProps> = ({
       {/* Day of week headers */}
       <View style={styles.weekHeader}>
         {dayNames.map((name) => (
-          <Text key={name} style={styles.dayHeaderText}>
-            {name}
-          </Text>
+          <View key={name} style={styles.dayHeaderCol}>
+            <Text style={styles.dayHeaderText}>{name}</Text>
+          </View>
         ))}
       </View>
 
@@ -62,33 +62,37 @@ export const WalkingCalendar: React.FC<WalkingCalendarProps> = ({
           const isSelected = selectedDate === dateStr;
 
           return (
-            <TouchableOpacity
+            <AnimatedPressable
               key={`day-${day}`}
-              style={[
-                styles.daySlot,
-                isToday && styles.todaySlot,
-                isSelected && styles.selectedSlot,
-              ]}
+              style={styles.daySlot}
               onPress={() => onSelectDate(dateStr)}
-              activeOpacity={0.7}
+              scaleTo={0.92}
             >
-              <Text
+              <View
                 style={[
-                  styles.dayNumber,
-                  isToday && styles.todayNumber,
-                  isSelected && styles.selectedNumber,
+                  styles.slotInner,
+                  isToday && styles.todaySlot,
+                  isSelected && styles.selectedSlot,
                 ]}
               >
-                {day}
-              </Text>
+                <Text
+                  style={[
+                    styles.dayNumber,
+                    isToday && styles.todayNumber,
+                    isSelected && styles.selectedNumber,
+                  ]}
+                >
+                  {day}
+                </Text>
 
-              {/* Walking dot indicator */}
-              <View style={styles.dotContainer}>
-                {hasWalked && (
-                  <View style={[styles.walkDot, isSelected && styles.walkDotSelected]} />
-                )}
+                {/* Walking dot indicator */}
+                <View style={styles.dotContainer}>
+                  {hasWalked && (
+                    <View style={[styles.walkDot, isSelected && styles.walkDotSelected]} />
+                  )}
+                </View>
               </View>
-            </TouchableOpacity>
+            </AnimatedPressable>
           );
         })}
       </View>
@@ -100,7 +104,7 @@ export const WalkingCalendar: React.FC<WalkingCalendarProps> = ({
           <Text style={styles.legendText}>Walked</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.todayBox]} />
+          <View style={styles.todayBox} />
           <Text style={styles.legendText}>Today</Text>
         </View>
       </View>
@@ -110,26 +114,29 @@ export const WalkingCalendar: React.FC<WalkingCalendarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1E293B',
-    borderRadius: 14,
-    padding: 14,
+    backgroundColor: THEME.bg.card,
+    borderRadius: 12,
+    padding: 10,
     borderWidth: 1,
-    borderColor: '#334155',
-    marginVertical: 8,
+    borderColor: THEME.bg.border,
+    marginVertical: 6,
   },
   weekHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 8,
+    marginBottom: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: THEME.bg.border,
     paddingBottom: 6,
   },
+  dayHeaderCol: {
+    width: '14.2857%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dayHeaderText: {
-    width: 38,
     textAlign: 'center',
-    color: '#94A3B8',
-    fontSize: 12,
+    color: THEME.text.tertiary,
+    fontSize: 11,
     fontWeight: '600',
   },
   grid: {
@@ -137,54 +144,64 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   daySlot: {
-    width: '14.28%',
-    height: 44,
+    width: '14.2857%',
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 2,
+  },
+  slotInner: {
+    width: '100%',
+    height: '100%',
+    maxWidth: 36,
+    maxHeight: 36,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
-    marginVertical: 2,
   },
   todaySlot: {
     borderWidth: 1,
-    borderColor: '#38BDF8',
+    borderColor: THEME.text.secondary,
   },
   selectedSlot: {
-    backgroundColor: '#10B981',
+    backgroundColor: THEME.bg.chipActive,
+    borderWidth: 1,
+    borderColor: THEME.accent.blue,
   },
   dayNumber: {
-    color: '#F8FAFC',
-    fontSize: 13,
+    color: THEME.text.secondary,
+    fontSize: 12,
     fontWeight: '500',
   },
   todayNumber: {
-    color: '#38BDF8',
+    color: THEME.text.primary,
     fontWeight: '700',
   },
   selectedNumber: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: THEME.text.primary,
+    fontWeight: '700',
   },
   dotContainer: {
-    height: 6,
+    height: 4,
     justifyContent: 'center',
-    marginTop: 2,
+    marginTop: 1,
   },
   walkDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: THEME.accent.blue,
   },
   walkDotSelected: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: THEME.text.primary,
   },
   legend: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 10,
+    marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: THEME.bg.border,
   },
   legendItem: {
     flexDirection: 'row',
@@ -192,15 +209,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   legendText: {
-    color: '#94A3B8',
+    color: THEME.text.tertiary,
     fontSize: 11,
-    marginLeft: 6,
+    marginLeft: 5,
   },
   todayBox: {
-    width: 10,
-    height: 10,
+    width: 8,
+    height: 8,
     borderRadius: 2,
     borderWidth: 1,
-    borderColor: '#38BDF8',
+    borderColor: THEME.text.secondary,
   },
 });

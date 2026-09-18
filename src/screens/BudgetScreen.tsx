@@ -3,10 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
-  FlatList,
-  Alert,
 } from 'react-native';
 import {
   Plus,
@@ -17,8 +14,7 @@ import {
   PieChart as PieIcon,
   Calendar,
   Layers,
-  Edit2,
-  Trash2,
+  Repeat,
 } from 'lucide-react-native';
 import {
   DateGroupedExpenses,
@@ -46,6 +42,8 @@ import { AddRecurringModal } from '../components/modals/AddRecurringModal';
 import { SubtypeDrilldownModal } from '../components/modals/SubtypeDrilldownModal';
 import { RenewRecurringModal } from '../components/modals/RenewRecurringModal';
 import { formatCurrency, formatMonthYear, getMonthKey, getTodayString } from '../utils/dateUtils';
+import { THEME } from '../theme/colors';
+import { AnimatedPressable, FadeInView } from '../components/AnimatedComponents';
 
 type BudgetSubView = 'daily' | 'monthly' | 'yearly';
 
@@ -97,28 +95,23 @@ export const BudgetScreen: React.FC = () => {
   });
 
   const loadData = useCallback(() => {
-    // 1. Expiration check
     const expiring = RecurringRepo.getExpiringWithin(2);
     setExpiringRecurring(expiring);
 
-    // 2. Types
     const expTypes = ExpenseRepo.getTypes();
     setExpenseTypes(expTypes);
     const incTypes = IncomeRepo.getTypes();
     setIncomeTypes(incTypes);
 
-    // 3. Timeline
     const timeline = ExpenseRepo.getTimelineGrouped(100, 0);
     setGroupedTimeline(timeline);
 
-    // 4. Monthly Views
     const expenseRanking = ExpenseRepo.getMonthlyRankingWithRecurring(selectedMonthKey);
     setMonthlyExpenseRanking(expenseRanking);
 
     const incomePie = IncomeRepo.getMonthlyDistribution(selectedMonthKey);
     setMonthlyIncomePie(incomePie);
 
-    // 5. Yearly Views
     const stacked = IncomeRepo.getYearlyStackedBars(selectedMonthKey);
     setYearlyIncomeStacked(stacked);
 
@@ -130,7 +123,6 @@ export const BudgetScreen: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Date navigation
   const handlePrevMonth = () => {
     const prev = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1);
     setSelectedDate(prev);
@@ -145,14 +137,12 @@ export const BudgetScreen: React.FC = () => {
     setSelectedDate(new Date());
   };
 
-  // Month tap drill-down from Yearly chart to Monthly view!
   const handleYearlyMonthPress = (monthKey: string) => {
     const [y, m] = monthKey.split('-').map(Number);
     setSelectedDate(new Date(y, m - 1, 1));
     setActiveTab('monthly');
   };
 
-  // Toggle recurring in daily timeline
   const toggleRecurringSection = (dateStr: string) => {
     setExpandedRecurringDates((prev) => ({
       ...prev,
@@ -160,7 +150,6 @@ export const BudgetScreen: React.FC = () => {
     }));
   };
 
-  // Category drill-down
   const handleCategoryPress = (item: HorizontalBarItem) => {
     if (item.isRecurring) return;
     const breakdown = ExpenseRepo.getSubtypeBreakdown(item.id, selectedMonthKey);
@@ -169,7 +158,6 @@ export const BudgetScreen: React.FC = () => {
     setIsDrilldownOpen(true);
   };
 
-  // Save handlers
   const handleSaveExpense = (typeId: string, subtypeName: string | null, amount: number, date: string, id?: string) => {
     if (id) {
       ExpenseRepo.update(id, typeId, subtypeName, amount, date);
@@ -234,7 +222,7 @@ export const BudgetScreen: React.FC = () => {
         onResetToday={handleResetToday}
       />
 
-      {/* Persistent Recurring Expiration Warning Banner */}
+      {/* Persistent Recurring Expiration Warning Banner (No emojis) */}
       <ExpirationBanner
         expiringItems={expiringRecurring}
         onRenewPress={(item) => {
@@ -245,32 +233,32 @@ export const BudgetScreen: React.FC = () => {
 
       {/* Sub-view Navigation Tabs */}
       <View style={styles.tabBar}>
-        <TouchableOpacity
+        <AnimatedPressable
           style={[styles.tabBtn, activeTab === 'daily' && styles.tabBtnActive]}
           onPress={() => setActiveTab('daily')}
-          activeOpacity={0.7}
+          scaleTo={0.95}
         >
-          <Calendar size={15} color={activeTab === 'daily' ? '#FFFFFF' : '#94A3B8'} style={{ marginRight: 6 }} />
-          <Text style={[styles.tabText, activeTab === 'daily' && styles.tabTextActive]}>Daily Timeline</Text>
-        </TouchableOpacity>
+          <Calendar size={14} color={activeTab === 'daily' ? THEME.text.primary : THEME.text.tertiary} style={{ marginRight: 6 }} />
+          <Text style={[styles.tabText, activeTab === 'daily' && styles.tabTextActive]}>Timeline</Text>
+        </AnimatedPressable>
 
-        <TouchableOpacity
+        <AnimatedPressable
           style={[styles.tabBtn, activeTab === 'monthly' && styles.tabBtnActive]}
           onPress={() => setActiveTab('monthly')}
-          activeOpacity={0.7}
+          scaleTo={0.95}
         >
-          <PieIcon size={15} color={activeTab === 'monthly' ? '#FFFFFF' : '#94A3B8'} style={{ marginRight: 6 }} />
+          <PieIcon size={14} color={activeTab === 'monthly' ? THEME.text.primary : THEME.text.tertiary} style={{ marginRight: 6 }} />
           <Text style={[styles.tabText, activeTab === 'monthly' && styles.tabTextActive]}>Monthly</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
 
-        <TouchableOpacity
+        <AnimatedPressable
           style={[styles.tabBtn, activeTab === 'yearly' && styles.tabBtnActive]}
           onPress={() => setActiveTab('yearly')}
-          activeOpacity={0.7}
+          scaleTo={0.95}
         >
-          <Layers size={15} color={activeTab === 'yearly' ? '#FFFFFF' : '#94A3B8'} style={{ marginRight: 6 }} />
+          <Layers size={14} color={activeTab === 'yearly' ? THEME.text.primary : THEME.text.tertiary} style={{ marginRight: 6 }} />
           <Text style={[styles.tabText, activeTab === 'yearly' && styles.tabTextActive]}>Yearly</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
 
       {/* Tab 1: Daily Timeline */}
@@ -278,8 +266,8 @@ export const BudgetScreen: React.FC = () => {
         <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {groupedTimeline.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No Expenses Yet</Text>
-              <Text style={styles.emptySub}>Tap "+" button below to add your first expense</Text>
+              <Text style={styles.emptyTitle}>No Expenses Recorded</Text>
+              <Text style={styles.emptySub}>Tap the button below to add your first entry</Text>
             </View>
           ) : (
             groupedTimeline.map((group) => {
@@ -296,14 +284,14 @@ export const BudgetScreen: React.FC = () => {
 
                   {/* Regular Daily Expenses */}
                   {group.expenses.map((expense) => (
-                    <TouchableOpacity
+                    <AnimatedPressable
                       key={expense.id}
                       style={styles.expenseCard}
                       onPress={() => {
                         setEditingExpense(expense);
                         setIsExpenseModalOpen(true);
                       }}
-                      activeOpacity={0.7}
+                      scaleTo={0.98}
                     >
                       <View style={styles.expenseInfo}>
                         <Text style={styles.expenseType}>{expense.type_name}</Text>
@@ -312,26 +300,29 @@ export const BudgetScreen: React.FC = () => {
                         )}
                       </View>
                       <Text style={styles.expenseAmount}>{formatCurrency(expense.amount)}</Text>
-                    </TouchableOpacity>
+                    </AnimatedPressable>
                   ))}
 
                   {/* Expandable Recurring Expenses Section */}
                   {hasRecurring && (
                     <View style={styles.recurringSectionContainer}>
-                      <TouchableOpacity
+                      <AnimatedPressable
                         style={styles.recurringToggle}
                         onPress={() => toggleRecurringSection(group.date)}
-                        activeOpacity={0.7}
+                        scaleTo={0.98}
                       >
-                        <Text style={styles.recurringToggleText}>
-                          Recurring Expenses ({group.recurringAllocations.length})
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Repeat size={13} color={THEME.accent.recurring} style={{ marginRight: 6 }} />
+                          <Text style={styles.recurringToggleText}>
+                            Recurring Allocations ({group.recurringAllocations.length})
+                          </Text>
+                        </View>
                         {isRecurringExpanded ? (
-                          <ChevronUp size={16} color="#818CF8" />
+                          <ChevronUp size={15} color={THEME.text.secondary} />
                         ) : (
-                          <ChevronDown size={16} color="#818CF8" />
+                          <ChevronDown size={15} color={THEME.text.secondary} />
                         )}
-                      </TouchableOpacity>
+                      </AnimatedPressable>
 
                       {isRecurringExpanded && (
                         <View style={styles.recurringList}>
@@ -358,20 +349,20 @@ export const BudgetScreen: React.FC = () => {
       {/* Tab 2: Monthly Overview */}
       {activeTab === 'monthly' && (
         <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Section: Income Distribution (Pie Chart) */}
+          {/* Income Distribution (Pie Chart) */}
           <View style={styles.chartCard}>
             <View style={styles.cardTitleRow}>
-              <TrendingUp size={18} color="#10B981" style={{ marginRight: 6 }} />
+              <TrendingUp size={16} color={THEME.accent.income} style={{ marginRight: 6 }} />
               <Text style={styles.cardHeaderTitle}>Income Distribution</Text>
             </View>
             <PieChart slices={monthlyIncomePie.slices} total={monthlyIncomePie.total} />
           </View>
 
-          {/* Section: Expense Ranking (Horizontal Bar Chart) */}
+          {/* Expense Ranking (Horizontal Bar Chart) */}
           <View style={styles.chartCard}>
             <View style={styles.cardTitleRow}>
-              <TrendingDown size={18} color="#EF4444" style={{ marginRight: 6 }} />
-              <Text style={styles.cardHeaderTitle}>Monthly Expenses</Text>
+              <TrendingDown size={16} color={THEME.accent.expense} style={{ marginRight: 6 }} />
+              <Text style={styles.cardHeaderTitle}>Expenses by Category</Text>
             </View>
             <HorizontalBarChart
               items={monthlyExpenseRanking.items}
@@ -383,14 +374,14 @@ export const BudgetScreen: React.FC = () => {
         </ScrollView>
       )}
 
-      {/* Tab 3: Yearly View */}
+      {/* Tab 3: Yearly View with Individual Values & Breakdown */}
       {activeTab === 'yearly' && (
         <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Income Stacked Bar Chart */}
           <View style={styles.chartCard}>
             <View style={styles.cardTitleRow}>
-              <TrendingUp size={18} color="#10B981" style={{ marginRight: 6 }} />
-              <Text style={styles.cardHeaderTitle}>Yearly Income (Last 12 Months)</Text>
+              <TrendingUp size={16} color={THEME.accent.income} style={{ marginRight: 6 }} />
+              <Text style={styles.cardHeaderTitle}>Income (Last 12 Months)</Text>
             </View>
             <StackedBarChart
               groups={yearlyIncomeStacked.groups}
@@ -400,74 +391,73 @@ export const BudgetScreen: React.FC = () => {
             />
           </View>
 
-          {/* Expense Line Chart */}
+          {/* Expense Line Chart with individual values & tooltips */}
           <View style={styles.chartCard}>
             <View style={styles.cardTitleRow}>
-              <TrendingDown size={18} color="#EF4444" style={{ marginRight: 6 }} />
-              <Text style={styles.cardHeaderTitle}>Yearly Total Expenses</Text>
+              <TrendingDown size={16} color={THEME.accent.expense} style={{ marginRight: 6 }} />
+              <Text style={styles.cardHeaderTitle}>Expenses (Last 12 Months)</Text>
             </View>
             <LineChart
               data={yearlyExpenseLine}
-              lineColor="#EF4444"
-              fillColor="rgba(239, 68, 68, 0.12)"
+              lineColor={THEME.accent.expense}
+              fillColor="rgba(244, 63, 94, 0.08)"
               valuePrefix="Rs. "
               onPointPress={(pt) => pt.rawKey && handleYearlyMonthPress(pt.rawKey)}
             />
-            <Text style={styles.drillHint}>Tap a month to view that month's details</Text>
           </View>
           <View style={{ height: 100 }} />
         </ScrollView>
       )}
 
-      {/* Floating Speed Dial (+) */}
+      {/* Floating Speed Dial (+) with Spring Animation */}
       <View style={styles.fabContainer}>
         {isSpeedDialOpen && (
-          <View style={styles.speedDialOptions}>
-            <TouchableOpacity
-              style={[styles.speedDialBtn, { backgroundColor: '#6366F1' }]}
+          <FadeInView style={styles.speedDialOptions}>
+            <AnimatedPressable
+              style={[styles.speedDialBtn, { backgroundColor: THEME.bg.cardHover }]}
               onPress={() => {
                 setIsSpeedDialOpen(false);
                 setEditingRecurring(null);
                 setIsRecurringModalOpen(true);
               }}
-              activeOpacity={0.8}
+              scaleTo={0.92}
             >
               <Text style={styles.speedDialText}>+ Recurring</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
 
-            <TouchableOpacity
-              style={[styles.speedDialBtn, { backgroundColor: '#10B981' }]}
+            <AnimatedPressable
+              style={[styles.speedDialBtn, { backgroundColor: THEME.bg.cardHover }]}
               onPress={() => {
                 setIsSpeedDialOpen(false);
                 setEditingIncome(null);
                 setIsIncomeModalOpen(true);
               }}
-              activeOpacity={0.8}
+              scaleTo={0.92}
             >
               <Text style={styles.speedDialText}>+ Income</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
 
-            <TouchableOpacity
-              style={[styles.speedDialBtn, { backgroundColor: '#EF4444' }]}
+            <AnimatedPressable
+              style={[styles.speedDialBtn, { backgroundColor: THEME.text.primary }]}
               onPress={() => {
                 setIsSpeedDialOpen(false);
                 setEditingExpense(null);
                 setIsExpenseModalOpen(true);
               }}
-              activeOpacity={0.8}
+              scaleTo={0.92}
             >
-              <Text style={styles.speedDialText}>+ Expense</Text>
-            </TouchableOpacity>
-          </View>
+              <Text style={[styles.speedDialText, { color: '#090D16' }]}>+ Expense</Text>
+            </AnimatedPressable>
+          </FadeInView>
         )}
 
-        <TouchableOpacity
+        <AnimatedPressable
           style={[styles.mainFab, isSpeedDialOpen && styles.mainFabActive]}
           onPress={() => setIsSpeedDialOpen(!isSpeedDialOpen)}
-          activeOpacity={0.85}
+          scaleTo={0.9}
         >
-          <Plus size={26} color="#FFFFFF" style={isSpeedDialOpen ? { transform: [{ rotate: '45deg' }] } : undefined} />
-        </TouchableOpacity>
+          <Plus size={22} color={isSpeedDialOpen ? THEME.text.primary : '#090D16'} style={isSpeedDialOpen ? { transform: [{ rotate: '45deg' }] } : undefined} />
+        </AnimatedPressable>
       </View>
 
       {/* Modals */}
@@ -532,100 +522,101 @@ export const BudgetScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: THEME.bg.main,
   },
   tabBar: {
     flexDirection: 'row',
     marginHorizontal: 16,
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    padding: 4,
+    backgroundColor: THEME.bg.card,
+    borderRadius: 10,
+    padding: 3,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   tabBtn: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 8,
   },
   tabBtnActive: {
-    backgroundColor: '#334155',
+    backgroundColor: THEME.bg.chipActive,
   },
   tabText: {
-    color: '#94A3B8',
+    color: THEME.text.tertiary,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   tabTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: THEME.text.primary,
+    fontWeight: '600',
   },
   scrollContent: {
     flex: 1,
     paddingHorizontal: 16,
   },
   dateGroup: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   dateHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
-    marginBottom: 8,
+    borderBottomColor: THEME.bg.border,
+    marginBottom: 6,
   },
   dateTitle: {
-    color: '#38BDF8',
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    color: THEME.text.secondary,
+    fontSize: 12.5,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   dateTotal: {
-    color: '#F8FAFC',
-    fontSize: 14,
+    color: THEME.text.primary,
+    fontSize: 13,
     fontWeight: '700',
   },
   expenseCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    padding: 12,
+    backgroundColor: THEME.bg.card,
+    padding: 11,
     borderRadius: 10,
-    marginBottom: 6,
+    marginBottom: 5,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   expenseInfo: {
     flex: 1,
   },
   expenseType: {
-    color: '#F8FAFC',
-    fontSize: 15,
+    color: THEME.text.primary,
+    fontSize: 14,
     fontWeight: '600',
   },
   expenseSubtype: {
-    color: '#94A3B8',
-    fontSize: 13,
+    color: THEME.text.secondary,
+    fontSize: 12,
     marginTop: 2,
   },
   expenseAmount: {
-    color: '#F8FAFC',
-    fontSize: 15,
+    color: THEME.text.primary,
+    fontSize: 14,
     fontWeight: '700',
   },
   recurringSectionContainer: {
     marginTop: 4,
-    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    backgroundColor: THEME.bg.input,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: THEME.bg.border,
     overflow: 'hidden',
   },
   recurringToggle: {
@@ -633,12 +624,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   recurringToggleText: {
-    color: '#A5B4FC',
+    color: THEME.text.secondary,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   recurringList: {
     paddingHorizontal: 12,
@@ -649,41 +640,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 4,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(99, 102, 241, 0.12)',
+    borderTopColor: THEME.bg.border,
   },
   recurringName: {
-    color: '#C7D2FE',
-    fontSize: 13,
+    color: THEME.text.secondary,
+    fontSize: 12.5,
   },
   recurringCost: {
-    color: '#A5B4FC',
-    fontSize: 13,
+    color: THEME.accent.recurring,
+    fontSize: 12.5,
     fontWeight: '600',
   },
   chartCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: THEME.bg.card,
     borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
+    padding: 14,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   cardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   cardHeaderTitle: {
-    color: '#F8FAFC',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  drillHint: {
-    color: '#64748B',
-    fontSize: 11,
-    textAlign: 'center',
-    marginTop: 4,
-    fontStyle: 'italic',
+    color: THEME.text.primary,
+    fontSize: 15,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
@@ -691,14 +675,14 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyTitle: {
-    color: '#F8FAFC',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: THEME.text.primary,
+    fontSize: 16,
+    fontWeight: '600',
   },
   emptySub: {
-    color: '#94A3B8',
-    fontSize: 14,
-    marginTop: 6,
+    color: THEME.text.tertiary,
+    fontSize: 13,
+    marginTop: 4,
     textAlign: 'center',
   },
   fabContainer: {
@@ -708,35 +692,39 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   speedDialOptions: {
-    marginBottom: 12,
+    marginBottom: 10,
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 6,
   },
   speedDialBtn: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    elevation: 4,
+    paddingVertical: 7,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
+    elevation: 3,
   },
   speedDialText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
+    color: THEME.text.primary,
+    fontSize: 12.5,
+    fontWeight: '600',
   },
   mainFab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#3B82F6',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: THEME.text.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 6,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   mainFabActive: {
-    backgroundColor: '#475569',
+    backgroundColor: THEME.bg.cardHover,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
   },
 });

@@ -3,9 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
-  FlatList,
 } from 'react-native';
 import {
   Plus,
@@ -24,6 +22,8 @@ import { LineChart } from '../components/charts/LineChart';
 import { AddWalkingModal } from '../components/modals/AddWalkingModal';
 import { DateNavigator } from '../components/DateNavigator';
 import { formatDisplayDate, getTodayString } from '../utils/dateUtils';
+import { THEME } from '../theme/colors';
+import { AnimatedPressable, FadeInView } from '../components/AnimatedComponents';
 
 export const StepsScreen: React.FC = () => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -37,6 +37,10 @@ export const StepsScreen: React.FC = () => {
   const [metric, setMetric] = useState<'steps' | 'distance'>('steps');
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
 
+  // History pagination
+  const [historyLimit, setHistoryLimit] = useState<number>(50);
+  const [totalHistoryCount, setTotalHistoryCount] = useState<number>(0);
+
   // History list
   const [history, setHistory] = useState<WalkingRecord[]>([]);
 
@@ -45,36 +49,33 @@ export const StepsScreen: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<WalkingRecord | null>(null);
 
   const loadData = useCallback(() => {
-    // 1. Streak
     const st = WalkingRepo.calculateStreak();
     setStreak(st);
 
-    // 2. Calendar Walked Dates for selected month
     const y = currentDate.getFullYear();
     const m = currentDate.getMonth() + 1;
     const dates = WalkingRepo.getWalkedDatesForMonth(y, m);
     setWalkedDates(dates);
 
-    // 3. Selected day records
     if (selectedCalendarDate) {
       const dayRecs = WalkingRepo.getForDate(selectedCalendarDate);
       setSelectedDateRecords(dayRecs);
     }
 
-    // 4. Chart data
     const pts = WalkingRepo.getChartData(timeframe, metric);
     setChartData(pts);
 
-    // 5. History (newest first)
-    const all = WalkingRepo.getAll(50, 0);
+    const totalCount = WalkingRepo.getTotalCount();
+    setTotalHistoryCount(totalCount);
+
+    const all = WalkingRepo.getAll(historyLimit, 0);
     setHistory(all);
-  }, [currentDate, selectedCalendarDate, timeframe, metric]);
+  }, [currentDate, selectedCalendarDate, timeframe, metric, historyLimit]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Calendar month navigation
   const handlePrevMonth = () => {
     const prev = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
     setCurrentDate(prev);
@@ -105,77 +106,92 @@ export const StepsScreen: React.FC = () => {
     loadData();
   };
 
+  const handleScroll = (event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 250) {
+      if (history.length < totalHistoryCount) {
+        setHistoryLimit((prev) => prev + 50);
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Prominent Streak Card */}
-        <View style={styles.streakCard}>
+      <ScrollView
+        style={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={32}
+      >
+        {/* Refined Minimalist Streak Card (No emojis) */}
+        <FadeInView style={styles.streakCard}>
           <View style={styles.streakLeft}>
-            <View style={styles.fireCircle}>
-              <Flame size={28} color="#F97316" />
+            <View style={styles.streakIconWrapper}>
+              <Flame size={20} color={THEME.text.primary} />
             </View>
             <View>
               <Text style={styles.streakCount}>
                 {streak} {streak === 1 ? 'Day' : 'Days'} Streak
               </Text>
               <Text style={styles.streakSub}>
-                {streak > 0 ? 'Keep up the momentum!' : 'Take a walk today to start your streak!'}
+                {streak > 0 ? 'Consistent daily walking' : 'Log today’s walk to start your streak'}
               </Text>
             </View>
           </View>
-        </View>
+        </FadeInView>
 
-        {/* Section: Walking Charts */}
+        {/* Section: Walking Trends with Line Chart & Individual Values */}
         <View style={styles.card}>
           <View style={styles.chartHeader}>
             <View style={styles.titleRow}>
-              <Activity size={18} color="#10B981" style={{ marginRight: 6 }} />
+              <Activity size={16} color={THEME.text.secondary} style={{ marginRight: 6 }} />
               <Text style={styles.cardTitle}>Walking Trends</Text>
             </View>
 
             {/* Metric Switch: Steps vs Distance */}
             <View style={styles.metricToggle}>
-              <TouchableOpacity
+              <AnimatedPressable
                 style={[styles.toggleBtn, metric === 'steps' && styles.toggleBtnActive]}
                 onPress={() => setMetric('steps')}
-                activeOpacity={0.7}
+                scaleTo={0.92}
               >
                 <Text style={[styles.toggleText, metric === 'steps' && styles.toggleTextActive]}>
                   Steps
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </AnimatedPressable>
+              <AnimatedPressable
                 style={[styles.toggleBtn, metric === 'distance' && styles.toggleBtnActive]}
                 onPress={() => setMetric('distance')}
-                activeOpacity={0.7}
+                scaleTo={0.92}
               >
                 <Text style={[styles.toggleText, metric === 'distance' && styles.toggleTextActive]}>
                   KM
                 </Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
           </View>
 
           {/* Timeframe Switch: 7d | 12w | 12m */}
           <View style={styles.timeframeRow}>
             {(['7d', '12w', '12m'] as const).map((tf) => (
-              <TouchableOpacity
+              <AnimatedPressable
                 key={tf}
                 style={[styles.timeframeChip, timeframe === tf && styles.timeframeChipActive]}
                 onPress={() => setTimeframe(tf)}
-                activeOpacity={0.7}
+                scaleTo={0.94}
               >
                 <Text style={[styles.timeframeText, timeframe === tf && styles.timeframeTextActive]}>
-                  {tf === '7d' ? 'Last 7 Days' : tf === '12w' ? 'Last 12 Weeks' : 'Last 12 Months'}
+                  {tf === '7d' ? '7 Days' : tf === '12w' ? '12 Weeks' : '12 Months'}
                 </Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             ))}
           </View>
 
+          {/* Line Chart showing individual values and interactive tap */}
           <LineChart
             data={chartData}
-            lineColor={metric === 'steps' ? '#10B981' : '#38BDF8'}
-            fillColor={metric === 'steps' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(56, 189, 248, 0.12)'}
+            lineColor={THEME.accent.blue}
+            fillColor="rgba(56, 189, 248, 0.08)"
             valueSuffix={metric === 'distance' ? ' km' : ''}
           />
         </View>
@@ -183,7 +199,7 @@ export const StepsScreen: React.FC = () => {
         {/* Section: Walking Calendar */}
         <View style={styles.card}>
           <View style={styles.titleRow}>
-            <CalendarIcon size={18} color="#38BDF8" style={{ marginRight: 6 }} />
+            <CalendarIcon size={16} color={THEME.text.secondary} style={{ marginRight: 6 }} />
             <Text style={styles.cardTitle}>Walking Calendar</Text>
           </View>
 
@@ -209,31 +225,31 @@ export const StepsScreen: React.FC = () => {
                 {formatDisplayDate(selectedCalendarDate)}
               </Text>
               {selectedDateRecords.length === 0 ? (
-                <Text style={styles.noWalkText}>No walks recorded for this day.</Text>
+                <Text style={styles.noWalkText}>No walks recorded for this date.</Text>
               ) : (
                 selectedDateRecords.map((rec) => (
-                  <TouchableOpacity
+                  <AnimatedPressable
                     key={rec.id}
                     style={styles.dayRecordCard}
                     onPress={() => {
                       setEditingRecord(rec);
                       setIsModalOpen(true);
                     }}
-                    activeOpacity={0.7}
+                    scaleTo={0.98}
                   >
                     <View style={styles.statItem}>
-                      <Footprints size={16} color="#10B981" />
+                      <Footprints size={14} color={THEME.text.secondary} />
                       <Text style={styles.statVal}>{rec.steps.toLocaleString()} steps</Text>
                     </View>
                     <View style={styles.statItem}>
-                      <Navigation size={15} color="#38BDF8" />
+                      <Navigation size={14} color={THEME.accent.blue} />
                       <Text style={styles.statVal}>{rec.distance_km} km</Text>
                     </View>
                     <View style={styles.statItem}>
-                      <Gauge size={15} color="#F59E0B" />
+                      <Gauge size={14} color={THEME.text.secondary} />
                       <Text style={styles.statVal}>{rec.speed_kmh} km/h</Text>
                     </View>
-                  </TouchableOpacity>
+                  </AnimatedPressable>
                 ))
               )}
             </View>
@@ -242,23 +258,23 @@ export const StepsScreen: React.FC = () => {
 
         {/* Section: Walking History */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Recent Walking History</Text>
+          <Text style={styles.cardTitle}>Recent Activity</Text>
           {history.length === 0 ? (
             <Text style={styles.emptyText}>No walking entries recorded yet.</Text>
           ) : (
             history.map((rec) => (
-              <TouchableOpacity
+              <AnimatedPressable
                 key={rec.id}
                 style={styles.historyItem}
                 onPress={() => {
                   setEditingRecord(rec);
                   setIsModalOpen(true);
                 }}
-                activeOpacity={0.7}
+                scaleTo={0.98}
               >
                 <View style={styles.historyTop}>
                   <Text style={styles.historyDate}>{formatDisplayDate(rec.date)}</Text>
-                  <Edit2 size={14} color="#64748B" />
+                  <Edit2 size={13} color={THEME.text.tertiary} />
                 </View>
 
                 <View style={styles.historyStatsRow}>
@@ -277,27 +293,38 @@ export const StepsScreen: React.FC = () => {
                     <Text style={styles.historyStatLabel}>Speed</Text>
                   </View>
                 </View>
-              </TouchableOpacity>
+              </AnimatedPressable>
             ))
+          )}
+
+          {history.length < totalHistoryCount && (
+            <AnimatedPressable
+              style={styles.loadMoreBtn}
+              onPress={() => setHistoryLimit((prev) => prev + 50)}
+              scaleTo={0.97}
+            >
+              <Text style={styles.loadMoreText}>
+                Load More Activities ({history.length} of {totalHistoryCount})
+              </Text>
+            </AnimatedPressable>
           )}
         </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Floating Add (+) Button */}
-      <TouchableOpacity
+      {/* Floating Add (+) Button with Spring Bounce */}
+      <AnimatedPressable
         style={styles.fab}
         onPress={() => {
           setEditingRecord(null);
           setIsModalOpen(true);
         }}
-        activeOpacity={0.85}
+        scaleTo={0.9}
       >
-        <Plus size={26} color="#FFFFFF" />
-      </TouchableOpacity>
+        <Plus size={24} color="#090D16" />
+      </AnimatedPressable>
 
-      {/* Add / Edit Walking Modal */}
       <AddWalkingModal
         visible={isModalOpen}
         onClose={() => {
@@ -316,20 +343,20 @@ export const StepsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: THEME.bg.main,
   },
   scrollContent: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 8,
   },
   streakCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1.5,
-    borderColor: '#F97316',
+    backgroundColor: THEME.bg.card,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -337,153 +364,164 @@ const styles = StyleSheet.create({
   streakLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
-  fireCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+  streakIconWrapper: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: THEME.bg.chipActive,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginRight: 12,
   },
   streakCount: {
-    color: '#F8FAFC',
-    fontSize: 20,
-    fontWeight: 'bold',
+    color: THEME.text.primary,
+    fontSize: 17,
+    fontWeight: '700',
   },
   streakSub: {
-    color: '#94A3B8',
+    color: THEME.text.secondary,
     fontSize: 12,
-    marginTop: 2,
+    marginTop: 1,
   },
   card: {
-    backgroundColor: '#1E293B',
+    backgroundColor: THEME.bg.card,
     borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
+    padding: 14,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   chartHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   cardTitle: {
-    color: '#F8FAFC',
-    fontSize: 16,
-    fontWeight: '700',
+    color: THEME.text.primary,
+    fontSize: 15,
+    fontWeight: '600',
   },
   metricToggle: {
     flexDirection: 'row',
-    backgroundColor: '#0F172A',
-    borderRadius: 8,
+    backgroundColor: THEME.bg.input,
+    borderRadius: 6,
     padding: 2,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
   },
   toggleBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
   },
   toggleBtnActive: {
-    backgroundColor: '#334155',
+    backgroundColor: THEME.bg.chipActive,
   },
   toggleText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '600',
+    color: THEME.text.tertiary,
+    fontSize: 11,
+    fontWeight: '500',
   },
   toggleTextActive: {
-    color: '#FFFFFF',
+    color: THEME.text.primary,
+    fontWeight: '600',
   },
   timeframeRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
+    gap: 6,
+    marginBottom: 6,
   },
   timeframeChip: {
     flex: 1,
+    minWidth: 0,
     paddingVertical: 6,
-    backgroundColor: '#0F172A',
-    borderRadius: 8,
+    backgroundColor: THEME.bg.input,
+    borderRadius: 6,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
   },
   timeframeChipActive: {
-    backgroundColor: '#334155',
+    backgroundColor: THEME.bg.chipActive,
+    borderColor: THEME.accent.blue,
   },
   timeframeText: {
-    color: '#94A3B8',
+    color: THEME.text.tertiary,
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   timeframeTextActive: {
-    color: '#38BDF8',
+    color: THEME.text.primary,
+    fontWeight: '600',
   },
   selectedDateBox: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: THEME.bg.border,
   },
   selectedDateTitle: {
-    color: '#38BDF8',
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 8,
+    color: THEME.text.primary,
+    fontSize: 12.5,
+    fontWeight: '600',
+    marginBottom: 6,
   },
   noWalkText: {
-    color: '#64748B',
+    color: THEME.text.tertiary,
     fontSize: 12,
     fontStyle: 'italic',
   },
   dayRecordCard: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#0F172A',
-    padding: 10,
+    backgroundColor: THEME.bg.input,
+    padding: 9,
     borderRadius: 8,
     marginBottom: 6,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
   },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   statVal: {
-    color: '#F8FAFC',
-    fontSize: 13,
-    fontWeight: '600',
+    color: THEME.text.primary,
+    fontSize: 12.5,
+    fontWeight: '500',
   },
   emptyText: {
-    color: '#64748B',
-    fontSize: 13,
-    marginTop: 8,
-    fontStyle: 'italic',
+    color: THEME.text.tertiary,
+    fontSize: 12.5,
+    marginTop: 6,
   },
   historyItem: {
-    backgroundColor: '#0F172A',
+    backgroundColor: THEME.bg.input,
     borderRadius: 10,
-    padding: 12,
+    padding: 10,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   historyTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   historyDate: {
-    color: '#38BDF8',
-    fontSize: 13,
-    fontWeight: '700',
+    color: THEME.text.primary,
+    fontSize: 12.5,
+    fontWeight: '600',
   },
   historyStatsRow: {
     flexDirection: 'row',
@@ -494,34 +532,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   historyStatNum: {
-    color: '#F8FAFC',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: THEME.text.primary,
+    fontSize: 14,
+    fontWeight: '700',
   },
   historyStatLabel: {
-    color: '#94A3B8',
-    fontSize: 11,
-    marginTop: 2,
+    color: THEME.text.tertiary,
+    fontSize: 10,
+    marginTop: 1,
   },
   historyDivider: {
     width: 1,
-    height: 24,
-    backgroundColor: '#334155',
+    height: 20,
+    backgroundColor: THEME.bg.border,
   },
   fab: {
     position: 'absolute',
     bottom: 24,
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#10B981',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: THEME.text.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 6,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  loadMoreBtn: {
+    marginTop: 10,
+    paddingVertical: 10,
+    backgroundColor: THEME.bg.chip,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadMoreText: {
+    color: THEME.text.secondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

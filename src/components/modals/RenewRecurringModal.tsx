@@ -4,14 +4,16 @@ import {
   Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ScrollView,
   TextInput,
 } from 'react-native';
-import { X, Calendar, Check, AlertTriangle } from 'lucide-react-native';
+import { X, Calendar, Check, Clock } from 'lucide-react-native';
 import { RecurringExpense } from '../../types';
 import { addDays, formatCurrency, getTodayString } from '../../utils/dateUtils';
 import { DialpadInput } from '../DialpadInput';
+import { THEME } from '../../theme/colors';
+import { AnimatedPressable } from '../AnimatedComponents';
+import { DatePickerField } from '../DatePickerField';
 
 interface RenewRecurringModalProps {
   visible: boolean;
@@ -71,12 +73,12 @@ export const RenewRecurringModal: React.FC<RenewRecurringModalProps> = ({
         <View style={styles.sheet}>
           <View style={styles.header}>
             <View style={styles.titleRow}>
-              <AlertTriangle size={20} color="#F59E0B" style={{ marginRight: 8 }} />
+              <Clock size={16} color={THEME.text.secondary} style={{ marginRight: 8 }} />
               <Text style={styles.title}>Renew / Extend {item.name}</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={22} color="#94A3B8" />
-            </TouchableOpacity>
+            <AnimatedPressable onPress={onClose} style={styles.closeBtn}>
+              <X size={20} color={THEME.text.secondary} />
+            </AnimatedPressable>
           </View>
 
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
@@ -92,27 +94,24 @@ export const RenewRecurringModal: React.FC<RenewRecurringModalProps> = ({
 
             {/* Quick Extension chips */}
             <View style={styles.quickRow}>
-              <TouchableOpacity
+              <AnimatedPressable
                 style={styles.quickChip}
                 onPress={() => handleQuickExtend(30)}
-                activeOpacity={0.7}
               >
                 <Text style={styles.quickChipText}>+ 1 Month (30d)</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </AnimatedPressable>
+              <AnimatedPressable
                 style={styles.quickChip}
                 onPress={() => handleQuickExtend(90)}
-                activeOpacity={0.7}
               >
                 <Text style={styles.quickChipText}>+ 3 Months</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </AnimatedPressable>
+              <AnimatedPressable
                 style={styles.quickChip}
                 onPress={() => handleQuickExtend(365)}
-                activeOpacity={0.7}
               >
                 <Text style={styles.quickChipText}>+ 1 Year</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
 
             {/* Amount */}
@@ -125,41 +124,26 @@ export const RenewRecurringModal: React.FC<RenewRecurringModalProps> = ({
             />
 
             {/* Start Date */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>New Start Date</Text>
-              <View style={styles.dateInputWrapper}>
-                <Calendar size={16} color="#94A3B8" style={{ marginRight: 8 }} />
-                <TextInput
-                  style={styles.dateInput}
-                  value={startDate}
-                  onChangeText={setStartDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#475569"
-                />
-              </View>
-            </View>
+            <DatePickerField
+              label="New Start Date"
+              value={startDate}
+              onChange={setStartDate}
+            />
 
             {/* End Date */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>New End Date</Text>
-              <View style={styles.dateInputWrapper}>
-                <Calendar size={16} color="#94A3B8" style={{ marginRight: 8 }} />
-                <TextInput
-                  style={styles.dateInput}
-                  value={endDate}
-                  onChangeText={setEndDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#475569"
-                />
-              </View>
-            </View>
+            <DatePickerField
+              label="New End Date"
+              value={endDate}
+              onChange={setEndDate}
+              minDate={startDate}
+            />
 
             {/* Actions */}
             <View style={styles.actions}>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.8}>
-                <Check size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <AnimatedPressable style={styles.saveBtn} onPress={handleSave}>
+                <Check size={18} color="#090D16" style={{ marginRight: 6 }} />
                 <Text style={styles.saveBtnText}>Confirm Renewal</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
           </ScrollView>
         </View>
@@ -175,13 +159,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#1E293B',
+    backgroundColor: THEME.bg.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     maxHeight: '90%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   header: {
     flexDirection: 'row',
@@ -190,42 +174,43 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: THEME.bg.border,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   title: {
-    color: '#F8FAFC',
+    color: THEME.text.primary,
     fontSize: 17,
     fontWeight: '700',
   },
   closeBtn: {
-    padding: 4,
+    padding: 6,
   },
   body: {
     marginBottom: 16,
   },
   subInfo: {
-    color: '#94A3B8',
+    color: THEME.text.secondary,
     fontSize: 13,
     marginBottom: 12,
+    lineHeight: 18,
   },
   bold: {
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: THEME.text.primary,
   },
   errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'rgba(244, 63, 94, 0.1)',
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: 'rgba(244, 63, 94, 0.3)',
     padding: 10,
     borderRadius: 8,
     marginBottom: 12,
   },
   errorText: {
-    color: '#FCA5A5',
+    color: THEME.accent.expense,
     fontSize: 13,
   },
   quickRow: {
@@ -234,13 +219,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   quickChip: {
-    backgroundColor: '#334155',
+    backgroundColor: THEME.bg.chip,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 14,
   },
   quickChipText: {
-    color: '#38BDF8',
+    color: THEME.text.secondary,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -248,7 +235,7 @@ const styles = StyleSheet.create({
     marginVertical: 6,
   },
   label: {
-    color: '#94A3B8',
+    color: THEME.text.secondary,
     fontSize: 13,
     fontWeight: '500',
     marginBottom: 6,
@@ -256,17 +243,17 @@ const styles = StyleSheet.create({
   dateInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
-    borderWidth: 1.5,
-    borderColor: '#334155',
+    backgroundColor: THEME.bg.input,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 48,
   },
   dateInput: {
     flex: 1,
-    color: '#F8FAFC',
-    fontSize: 15,
+    color: THEME.text.primary,
+    fontSize: 14,
     fontWeight: '600',
   },
   actions: {
@@ -276,13 +263,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: THEME.text.primary,
+    paddingVertical: 13,
+    borderRadius: 10,
   },
   saveBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: '#090D16',
+    fontSize: 15,
     fontWeight: '700',
   },
 });

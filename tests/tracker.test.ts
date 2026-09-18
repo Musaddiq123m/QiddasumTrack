@@ -130,5 +130,94 @@ describe('Budget & Walking Tracker Core Logic', () => {
       assert.strictEqual(dist.slices[0].label, 'Salary');
       assert.strictEqual(dist.slices[0].value, 200000);
     });
+
+    it('successfully adds new expense and income categories', () => {
+      const initialExpenseTypes = ExpenseRepo.getTypes().length;
+      const newExp = ExpenseRepo.addType('Entertainment');
+      assert.strictEqual(newExp.name, 'Entertainment');
+      const updatedExpTypes = ExpenseRepo.getTypes();
+      assert.strictEqual(updatedExpTypes.length, initialExpenseTypes + 1);
+      assert.ok(updatedExpTypes.some((t) => t.name === 'Entertainment'));
+
+      const initialIncomeTypes = IncomeRepo.getTypes().length;
+      const newInc = IncomeRepo.addType('Investments');
+      assert.strictEqual(newInc.name, 'Investments');
+      const updatedIncTypes = IncomeRepo.getTypes();
+      assert.strictEqual(updatedIncTypes.length, initialIncomeTypes + 1);
+      assert.ok(updatedIncTypes.some((t) => t.name === 'Investments'));
+    });
+
+    it('successfully imports sample_tracker_data.xlsx workbook', async () => {
+      const XLSX = await import('xlsx');
+      const fs = await import('fs');
+      const path = await import('path');
+      const filePath = path.join(__dirname, '..', 'sample_tracker_data.xlsx');
+      const fileBuffer = fs.readFileSync(filePath);
+      const wb = XLSX.read(fileBuffer, { type: 'buffer' });
+
+      const { BackupRepo } = await import('../src/db/repositories/backupRepo');
+      const result = await BackupRepo.importFromWorkbook(wb);
+      assert.strictEqual(result.success, true);
+      assert.ok(result.count > 0, 'Expected imported records count > 0');
+
+      const walkingRecords = WalkingRepo.getAll();
+      assert.ok(walkingRecords.length >= 10, 'Expected at least 10 walking records');
+
+      const expenseRecords = ExpenseRepo.getAll();
+      assert.ok(expenseRecords.length >= 10, 'Expected at least 10 expense records');
+
+      const recurringRecords = RecurringRepo.getAll();
+      assert.ok(recurringRecords.length >= 3, 'Expected at least 3 recurring expenses');
+
+      // Verify the 2-day expiration warning triggers for Gym Membership
+      const warnings = RecurringRepo.getExpiringWithin(2);
+      assert.ok(warnings.some((w) => w.expense.name === 'Gym Membership'));
+    });
+
+    it('successfully parses and imports Strava activities CSV format', async () => {
+      const XLSX = await import('xlsx');
+      const { BackupRepo } = await import('../src/db/repositories/backupRepo');
+
+      // Simulated Strava export CSV with meters and m/s, plus a non-walk activity (Ride)
+      const stravaCsvData = [
+        {
+          'Activity Date': 'May 10, 2026, 06:30:00 AM',
+          'Activity Type': 'Walk',
+          'Distance': 5400, // 5.4 km (in meters)
+          'Average Speed': 1.39, // ~5.0 km/h (in m/s)
+        },
+        {
+          'Activity Date': '2026-05-11 07:15:00',
+          'Activity Type': 'Hike',
+          'Distance': 8200, // 8.2 km
+          'Average Speed': 1.11, // ~4.0 km/h
+        },
+        {
+          'Activity Date': '2026-05-12 18:00:00',
+          'Activity Type': 'Ride', // Should be ignored (bike ride)
+          'Distance': 25000,
+          'Average Speed': 6.94,
+        },
+      ];
+
+      const ws = XLSX.utils.json_to_sheet(stravaCsvData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+
+      const initialCount = WalkingRepo.getAll().length;
+      const result = await BackupRepo.importFromWorkbook(wb);
+
+      assert.strictEqual(result.success, true);
+      assert.strictEqual(result.count, 2, 'Only 2 walking/hiking activities should be imported');
+
+      const walksMay10 = WalkingRepo.getForDate('2026-05-10');
+      assert.strictEqual(walksMay10.length, 1);
+      assert.strictEqual(walksMay10[0].distance_km, 5.4);
+      assert.strictEqual(walksMay10[0].speed_kmh, 5.0);
+      assert.ok(walksMay10[0].steps > 7000, 'Steps should be auto-estimated from km (~7290)');
+
+      const walksMay12 = WalkingRepo.getForDate('2026-05-12');
+      assert.strictEqual(walksMay12.length, 0, 'Bike ride on May 12 must not be imported');
+    });
   });
 });

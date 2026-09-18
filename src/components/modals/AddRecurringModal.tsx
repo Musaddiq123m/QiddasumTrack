@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ScrollView,
   TextInput,
 } from 'react-native';
@@ -12,6 +11,9 @@ import { X, Calendar, Check, Trash2, Clock } from 'lucide-react-native';
 import { RecurringExpense } from '../../types';
 import { addDays, formatCurrency, getDaysDifference, getTodayString } from '../../utils/dateUtils';
 import { DialpadInput } from '../DialpadInput';
+import { THEME } from '../../theme/colors';
+import { AnimatedPressable } from '../AnimatedComponents';
+import { DatePickerField } from '../DatePickerField';
 
 interface AddRecurringModalProps {
   visible: boolean;
@@ -92,9 +94,9 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
             <Text style={styles.title}>
               {initialRecord ? 'Edit Recurring Expense' : 'Add Recurring Expense'}
             </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={22} color="#94A3B8" />
-            </TouchableOpacity>
+            <AnimatedPressable onPress={onClose} style={styles.closeBtn}>
+              <X size={20} color={THEME.text.secondary} />
+            </AnimatedPressable>
           </View>
 
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
@@ -110,7 +112,7 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
               <TextInput
                 style={styles.textInput}
                 placeholder="e.g. Rent, Gym, Electricity, Internet"
-                placeholderTextColor="#475569"
+                placeholderTextColor={THEME.text.tertiary}
                 value={name}
                 onChangeText={setName}
               />
@@ -128,32 +130,21 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
 
             {/* Dates */}
             <View style={styles.datesRow}>
-              <View style={[styles.fieldContainer, { flex: 1, marginRight: 8 }]}>
-                <Text style={styles.label}>Start Date</Text>
-                <View style={styles.dateInputWrapper}>
-                  <Calendar size={16} color="#94A3B8" style={{ marginRight: 6 }} />
-                  <TextInput
-                    style={styles.dateInput}
-                    value={startDate}
-                    onChangeText={setStartDate}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#475569"
-                  />
-                </View>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <DatePickerField
+                  label="Start Date"
+                  value={startDate}
+                  onChange={setStartDate}
+                />
               </View>
 
-              <View style={[styles.fieldContainer, { flex: 1, marginLeft: 8 }]}>
-                <Text style={styles.label}>End Date</Text>
-                <View style={styles.dateInputWrapper}>
-                  <Calendar size={16} color="#94A3B8" style={{ marginRight: 6 }} />
-                  <TextInput
-                    style={styles.dateInput}
-                    value={endDate}
-                    onChangeText={setEndDate}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#475569"
-                  />
-                </View>
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <DatePickerField
+                  label="End Date"
+                  value={endDate}
+                  onChange={setEndDate}
+                  minDate={startDate}
+                />
               </View>
             </View>
 
@@ -161,7 +152,7 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
             {daysDiff > 0 && cleanAmount > 0 && (
               <View style={styles.allocationCard}>
                 <View style={styles.cardHeader}>
-                  <Clock size={16} color="#38BDF8" style={{ marginRight: 6 }} />
+                  <Clock size={15} color={THEME.text.secondary} style={{ marginRight: 6 }} />
                   <Text style={styles.cardTitle}>Daily Allocation</Text>
                 </View>
                 <Text style={styles.allocationValue}>
@@ -175,18 +166,18 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
 
             {/* Actions */}
             <View style={styles.actions}>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.8}>
-                <Check size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <AnimatedPressable style={styles.saveBtn} onPress={handleSave}>
+                <Check size={18} color="#090D16" style={{ marginRight: 6 }} />
                 <Text style={styles.saveBtnText}>
                   {initialRecord ? 'Update Recurring' : 'Save Recurring'}
                 </Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
 
               {initialRecord && onDelete && (
-                <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} activeOpacity={0.8}>
-                  <Trash2 size={18} color="#EF4444" style={{ marginRight: 6 }} />
+                <AnimatedPressable style={styles.deleteBtn} onPress={handleDelete}>
+                  <Trash2 size={16} color={THEME.accent.expense} style={{ marginRight: 6 }} />
                   <Text style={styles.deleteBtnText}>Delete</Text>
-                </TouchableOpacity>
+                </AnimatedPressable>
               )}
             </View>
           </ScrollView>
@@ -203,13 +194,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#1E293B',
+    backgroundColor: THEME.bg.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     maxHeight: '90%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   header: {
     flexDirection: 'row',
@@ -218,49 +209,49 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: THEME.bg.border,
   },
   title: {
-    color: '#F8FAFC',
-    fontSize: 18,
+    color: THEME.text.primary,
+    fontSize: 17,
     fontWeight: '700',
   },
   closeBtn: {
-    padding: 4,
+    padding: 6,
   },
   body: {
     marginBottom: 16,
   },
   errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'rgba(244, 63, 94, 0.1)',
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: 'rgba(244, 63, 94, 0.3)',
     padding: 10,
     borderRadius: 8,
     marginBottom: 12,
   },
   errorText: {
-    color: '#FCA5A5',
+    color: THEME.accent.expense,
     fontSize: 13,
   },
   fieldContainer: {
     marginVertical: 6,
   },
   label: {
-    color: '#94A3B8',
+    color: THEME.text.secondary,
     fontSize: 13,
     fontWeight: '500',
     marginBottom: 6,
   },
   textInput: {
-    backgroundColor: '#0F172A',
-    borderWidth: 1.5,
-    borderColor: '#334155',
+    backgroundColor: THEME.bg.input,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
     borderRadius: 12,
     paddingHorizontal: 14,
-    height: 50,
-    color: '#F8FAFC',
-    fontSize: 16,
+    height: 48,
+    color: THEME.text.primary,
+    fontSize: 15,
   },
   datesRow: {
     flexDirection: 'row',
@@ -268,23 +259,23 @@ const styles = StyleSheet.create({
   dateInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
-    borderWidth: 1.5,
-    borderColor: '#334155',
+    backgroundColor: THEME.bg.input,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
     borderRadius: 12,
     paddingHorizontal: 10,
-    height: 50,
+    height: 48,
   },
   dateInput: {
     flex: 1,
-    color: '#F8FAFC',
+    color: THEME.text.primary,
     fontSize: 14,
     fontWeight: '600',
   },
   allocationCard: {
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    backgroundColor: THEME.bg.input,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
+    borderColor: THEME.bg.border,
     borderRadius: 12,
     padding: 12,
     marginVertical: 10,
@@ -295,18 +286,19 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   cardTitle: {
-    color: '#38BDF8',
-    fontSize: 12,
+    color: THEME.text.secondary,
+    fontSize: 11,
     fontWeight: '600',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   allocationValue: {
-    color: '#F8FAFC',
-    fontSize: 20,
-    fontWeight: 'bold',
+    color: THEME.text.primary,
+    fontSize: 19,
+    fontWeight: '700',
   },
   allocationSub: {
-    color: '#94A3B8',
+    color: THEME.text.tertiary,
     fontSize: 12,
     marginTop: 2,
   },
@@ -318,28 +310,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366F1',
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: THEME.text.primary,
+    paddingVertical: 13,
+    borderRadius: 10,
   },
   saveBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: '#090D16',
+    fontSize: 15,
     fontWeight: '700',
   },
   deleteBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: 'rgba(244, 63, 94, 0.08)',
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(244, 63, 94, 0.2)',
   },
   deleteBtnText: {
-    color: '#EF4444',
-    fontSize: 15,
+    color: THEME.accent.expense,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Delete } from 'lucide-react-native';
+import { THEME } from '../theme/colors';
 
 interface DialpadInputProps {
   value: string;
@@ -21,11 +22,9 @@ export const DialpadInput: React.FC<DialpadInputProps> = ({
   isCurrency = false,
   label,
 }) => {
-  // Format display text with comma separators if currency/integer
   const getFormattedValue = (text: string) => {
     if (!text) return '';
     if (isCurrency) {
-      // Clean non-digits
       const digits = text.replace(/[^0-9]/g, '');
       if (!digits) return '';
       return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -38,7 +37,6 @@ export const DialpadInput: React.FC<DialpadInputProps> = ({
       const cleanDigits = newText.replace(/[^0-9]/g, '');
       onChangeValue(cleanDigits);
     } else {
-      // allow numbers and one decimal point for km or km/h
       const sanitized = newText.replace(/[^0-9.]/g, '');
       onChangeValue(sanitized);
     }
@@ -66,12 +64,16 @@ export const DialpadInput: React.FC<DialpadInputProps> = ({
           autoFocus={false}
         />
 
-        {suffix && <Text style={styles.suffix}>{suffix}</Text>}
-
         {value.length > 0 && (
           <TouchableOpacity onPress={handleClear} style={styles.clearBtn} activeOpacity={0.7}>
-            <Delete size={18} color="#94A3B8" />
+            <Delete size={16} color={THEME.text.secondary} />
           </TouchableOpacity>
+        )}
+
+        {suffix && (
+          <View style={styles.suffixBadge}>
+            <Text style={styles.suffixText}>{suffix}</Text>
+          </View>
         )}
       </View>
     </View>
@@ -83,7 +85,7 @@ const styles = StyleSheet.create({
     marginVertical: 6,
   },
   label: {
-    color: '#94A3B8',
+    color: THEME.text.secondary,
     fontSize: 13,
     fontWeight: '500',
     marginBottom: 6,
@@ -91,33 +93,44 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
-    borderWidth: 1.5,
-    borderColor: '#334155',
+    backgroundColor: THEME.bg.input,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
     borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 54,
+    paddingLeft: 14,
+    paddingRight: 10,
+    height: 52,
   },
   prefix: {
-    color: '#10B981',
-    fontSize: 18,
-    fontWeight: '700',
-    marginRight: 8,
+    color: THEME.text.primary,
+    fontSize: 16,
+    fontWeight: '600',
+    marginRight: 6,
   },
   input: {
     flex: 1,
-    color: '#F8FAFC',
-    fontSize: 22,
-    fontWeight: '700',
-    padding: 0,
-  },
-  suffix: {
-    color: '#94A3B8',
-    fontSize: 15,
+    color: THEME.text.primary,
+    fontSize: 18,
     fontWeight: '600',
-    marginLeft: 6,
+    padding: 0,
+    minWidth: 40,
   },
   clearBtn: {
     padding: 6,
+    marginRight: 4,
+  },
+  suffixBadge: {
+    backgroundColor: THEME.bg.card,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    flexShrink: 0,
+  },
+  suffixText: {
+    color: THEME.text.secondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

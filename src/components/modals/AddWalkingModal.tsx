@@ -4,15 +4,16 @@ import {
   Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ScrollView,
   TextInput,
-  Alert,
 } from 'react-native';
 import { X, Calendar, Check, Trash2 } from 'lucide-react-native';
 import { WalkingRecord } from '../../types';
 import { getTodayString } from '../../utils/dateUtils';
 import { DialpadInput } from '../DialpadInput';
+import { THEME } from '../../theme/colors';
+import { AnimatedPressable } from '../AnimatedComponents';
+import { DatePickerField } from '../DatePickerField';
 
 interface AddWalkingModalProps {
   visible: boolean;
@@ -86,7 +87,7 @@ export const AddWalkingModal: React.FC<AddWalkingModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.sheet}>
           {/* Header */}
@@ -94,9 +95,9 @@ export const AddWalkingModal: React.FC<AddWalkingModalProps> = ({
             <Text style={styles.title}>
               {initialRecord ? 'Edit Walking Record' : 'Add Walking Record'}
             </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={22} color="#94A3B8" />
-            </TouchableOpacity>
+            <AnimatedPressable onPress={onClose} style={styles.closeBtn} scaleTo={0.9}>
+              <X size={20} color={THEME.text.secondary} />
+            </AnimatedPressable>
           </View>
 
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
@@ -107,19 +108,11 @@ export const AddWalkingModal: React.FC<AddWalkingModalProps> = ({
             )}
 
             {/* Date Input */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Date</Text>
-              <View style={styles.dateInputWrapper}>
-                <Calendar size={18} color="#94A3B8" style={{ marginRight: 8 }} />
-                <TextInput
-                  style={styles.dateInput}
-                  value={date}
-                  onChangeText={setDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#475569"
-                />
-              </View>
-            </View>
+            <DatePickerField
+              label="Date"
+              value={date}
+              onChange={setDate}
+            />
 
             {/* Steps Input */}
             <DialpadInput
@@ -150,18 +143,18 @@ export const AddWalkingModal: React.FC<AddWalkingModalProps> = ({
 
             {/* Actions */}
             <View style={styles.actions}>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.8}>
-                <Check size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <AnimatedPressable style={styles.saveBtn} onPress={handleSave} scaleTo={0.97}>
+                <Check size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
                 <Text style={styles.saveBtnText}>
                   {initialRecord ? 'Update Record' : 'Save Record'}
                 </Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
 
               {initialRecord && onDelete && (
-                <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} activeOpacity={0.8}>
-                  <Trash2 size={18} color="#EF4444" style={{ marginRight: 6 }} />
+                <AnimatedPressable style={styles.deleteBtn} onPress={handleDelete} scaleTo={0.97}>
+                  <Trash2 size={16} color={THEME.accent.expense} style={{ marginRight: 6 }} />
                   <Text style={styles.deleteBtnText}>Delete</Text>
-                </TouchableOpacity>
+                </AnimatedPressable>
               )}
             </View>
           </ScrollView>
@@ -174,17 +167,17 @@ export const AddWalkingModal: React.FC<AddWalkingModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#1E293B',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: THEME.bg.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 20,
     maxHeight: '90%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   header: {
     flexDirection: 'row',
@@ -193,11 +186,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: THEME.bg.border,
   },
   title: {
-    color: '#F8FAFC',
-    fontSize: 18,
+    color: THEME.text.primary,
+    fontSize: 17,
     fontWeight: '700',
   },
   closeBtn: {
@@ -207,22 +200,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'rgba(244, 63, 94, 0.12)',
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: THEME.accent.expense,
     padding: 10,
     borderRadius: 8,
     marginBottom: 12,
   },
   errorText: {
-    color: '#FCA5A5',
+    color: '#FDA4AF',
     fontSize: 13,
   },
   fieldContainer: {
     marginVertical: 6,
   },
   label: {
-    color: '#94A3B8',
+    color: THEME.text.secondary,
     fontSize: 13,
     fontWeight: '500',
     marginBottom: 6,
@@ -230,49 +223,49 @@ const styles = StyleSheet.create({
   dateInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
-    borderWidth: 1.5,
-    borderColor: '#334155',
+    backgroundColor: THEME.bg.input,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
     borderRadius: 12,
     paddingHorizontal: 14,
-    height: 50,
+    height: 48,
   },
   dateInput: {
     flex: 1,
-    color: '#F8FAFC',
-    fontSize: 16,
+    color: THEME.text.primary,
+    fontSize: 15,
     fontWeight: '600',
   },
   actions: {
-    marginTop: 20,
+    marginTop: 18,
     gap: 10,
   },
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: THEME.accent.blue,
+    paddingVertical: 13,
+    borderRadius: 10,
   },
   saveBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: '#090D16',
+    fontSize: 15,
     fontWeight: '700',
   },
   deleteBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: 'rgba(244, 63, 94, 0.1)',
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(244, 63, 94, 0.25)',
   },
   deleteBtnText: {
-    color: '#EF4444',
-    fontSize: 15,
+    color: THEME.accent.expense,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

@@ -161,12 +161,63 @@ export class BackupRepo {
           const expTypesMap: { [name: string]: string } = {};
           ExpenseRepo.getTypes().forEach((t) => (expTypesMap[t.name.toLowerCase()] = t.id));
 
-          // 3. Walking
-          if (data.Sheets['Walking']) {
-            const walking = XLSX.utils.sheet_to_json<any>(data.Sheets['Walking']);
-            for (const w of walking) {
-              if (w.Date && w.Steps !== undefined) {
-                WalkingRepo.add(Number(w.Steps), Number(w.Distance_KM || 0), Number(w.Speed_KMH || 0), String(w.Date));
+          // 3. Walking (Supports standard tracker format AND direct Strava activity exports)
+          const walkingSheet =
+            data.Sheets['Walking'] ||
+            data.Sheets['walking'] ||
+            (data.SheetNames && data.SheetNames.length === 1 ? data.Sheets[data.SheetNames[0]] : null);
+
+          if (walkingSheet) {
+            const rawWalking = XLSX.utils.sheet_to_json<any>(walkingSheet);
+            for (const w of rawWalking) {
+              // Filter out non-walk activities if Strava 'Activity Type' column is present
+              const activityType = (w['Activity Type'] || w['activity_type'] || w['Type'] || '').toLowerCase();
+              if (activityType && !['walk', 'walking', 'hike', 'hiking', 'run', 'running'].includes(activityType)) {
+                continue;
+              }
+
+              // Parse date (supports YYYY-MM-DD, ISO, or Strava's "May 12, 2024, 07:15:00")
+              const rawDate = w.Date || w.date || w['Activity Date'] || w['activity_date'];
+              let formattedDate = '';
+              if (rawDate) {
+                if (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawDate.trim())) {
+                  formattedDate = rawDate.trim();
+                } else {
+                  const d = new Date(rawDate);
+                  if (!isNaN(d.getTime())) {
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    formattedDate = `${y}-${m}-${day}`;
+                  }
+                }
+              }
+
+              // Distance (convert meters to km if > 60)
+              let dist = Number(w.Distance_KM ?? w.distance_km ?? w.Distance ?? w.distance ?? 0);
+              if (dist > 60) {
+                dist = Number((dist / 1000).toFixed(2));
+              } else {
+                dist = Number(dist.toFixed(2));
+              }
+
+              // Steps (if not provided, auto-estimate ~1350 steps/km)
+              let steps = Number(w.Steps ?? w.steps ?? 0);
+              if ((!steps || isNaN(steps)) && dist > 0) {
+                steps = Math.round(dist * 1350);
+              }
+
+              // Speed in km/h (convert m/s to km/h if needed)
+              let speed = Number(w.Speed_KMH ?? w.speed_kmh ?? w['Average Speed'] ?? w.speed ?? 0);
+              if (speed > 0 && speed < 10 && dist > 0) {
+                // likely m/s from Strava, convert to km/h
+                speed = Number((speed * 3.6).toFixed(1));
+              } else {
+                speed = Number(speed.toFixed(1));
+              }
+
+              if (formattedDate && (steps > 0 || dist > 0)) {
+                WalkingRepo.add(steps, dist, speed, formattedDate);
                 importedCount++;
               }
             }

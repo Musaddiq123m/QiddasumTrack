@@ -3,17 +3,9 @@ import { getDB } from '../database';
 import { generateUUID } from '../schema';
 import { getPast12Months } from '../../utils/dateUtils';
 
-const PALETTE = [
-  '#10B981', // Emerald green
-  '#3B82F6', // Blue
-  '#F59E0B', // Amber
-  '#8B5CF6', // Purple
-  '#EC4899', // Pink
-  '#06B6D4', // Cyan
-  '#F97316', // Orange
-  '#6366F1', // Indigo
-  '#14B8A6', // Teal
-];
+import { THEME } from '../../theme/colors';
+
+const PALETTE = THEME.chartPalette;
 
 export class IncomeRepo {
   // --- Category Types ---

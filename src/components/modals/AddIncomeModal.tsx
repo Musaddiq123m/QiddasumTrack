@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ScrollView,
   TextInput,
 } from 'react-native';
@@ -12,6 +11,9 @@ import { X, Calendar, Check, Plus, Trash2 } from 'lucide-react-native';
 import { IncomeRecord, IncomeType } from '../../types';
 import { getTodayString } from '../../utils/dateUtils';
 import { DialpadInput } from '../DialpadInput';
+import { THEME } from '../../theme/colors';
+import { AnimatedPressable } from '../AnimatedComponents';
+import { DatePickerField } from '../DatePickerField';
 
 interface AddIncomeModalProps {
   visible: boolean;
@@ -93,15 +95,15 @@ export const AddIncomeModal: React.FC<AddIncomeModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.sheet}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>{initialRecord ? 'Edit Income' : 'Add Income'}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={22} color="#94A3B8" />
-            </TouchableOpacity>
+            <AnimatedPressable onPress={onClose} style={styles.closeBtn} scaleTo={0.9}>
+              <X size={20} color={THEME.text.secondary} />
+            </AnimatedPressable>
           </View>
 
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
@@ -115,16 +117,16 @@ export const AddIncomeModal: React.FC<AddIncomeModalProps> = ({
             <View style={styles.fieldContainer}>
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Income Type</Text>
-                <TouchableOpacity
+                <AnimatedPressable
                   style={styles.addTypeToggle}
                   onPress={() => setIsCreatingType(!isCreatingType)}
-                  activeOpacity={0.7}
+                  scaleTo={0.94}
                 >
-                  <Plus size={14} color="#38BDF8" style={{ marginRight: 4 }} />
+                  <Plus size={13} color={THEME.text.secondary} style={{ marginRight: 3 }} />
                   <Text style={styles.addTypeToggleText}>
-                    {isCreatingType ? 'Cancel' : 'New Type'}
+                    {isCreatingType ? 'Cancel' : 'New'}
                   </Text>
-                </TouchableOpacity>
+                </AnimatedPressable>
               </View>
 
               {isCreatingType ? (
@@ -137,29 +139,29 @@ export const AddIncomeModal: React.FC<AddIncomeModalProps> = ({
                     onChangeText={setNewTypeName}
                     autoFocus
                   />
-                  <TouchableOpacity
+                  <AnimatedPressable
                     style={styles.newTypeAddBtn}
                     onPress={handleCreateType}
-                    activeOpacity={0.8}
+                    scaleTo={0.92}
                   >
                     <Text style={styles.newTypeAddBtnText}>Add</Text>
-                  </TouchableOpacity>
+                  </AnimatedPressable>
                 </View>
               ) : (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
                   {incomeTypes.map((t) => {
                     const isSelected = selectedTypeId === t.id;
                     return (
-                      <TouchableOpacity
+                      <AnimatedPressable
                         key={t.id}
                         style={[styles.typeChip, isSelected && styles.typeChipSelected]}
                         onPress={() => setSelectedTypeId(t.id)}
-                        activeOpacity={0.7}
+                        scaleTo={0.94}
                       >
                         <Text style={[styles.typeChipText, isSelected && styles.typeChipTextSelected]}>
                           {t.name}
                         </Text>
-                      </TouchableOpacity>
+                      </AnimatedPressable>
                     );
                   })}
                 </ScrollView>
@@ -177,34 +179,26 @@ export const AddIncomeModal: React.FC<AddIncomeModalProps> = ({
             />
 
             {/* Date Input */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Date</Text>
-              <View style={styles.dateInputWrapper}>
-                <Calendar size={18} color="#94A3B8" style={{ marginRight: 8 }} />
-                <TextInput
-                  style={styles.dateInput}
-                  value={date}
-                  onChangeText={setDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#475569"
-                />
-              </View>
-            </View>
+            <DatePickerField
+              label="Date"
+              value={date}
+              onChange={setDate}
+            />
 
             {/* Actions */}
             <View style={styles.actions}>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.8}>
-                <Check size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <AnimatedPressable style={styles.saveBtn} onPress={handleSave} scaleTo={0.97}>
+                <Check size={18} color="#090D16" style={{ marginRight: 6 }} />
                 <Text style={styles.saveBtnText}>
                   {initialRecord ? 'Update Income' : 'Save Income'}
                 </Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
 
               {initialRecord && onDelete && (
-                <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} activeOpacity={0.8}>
-                  <Trash2 size={18} color="#EF4444" style={{ marginRight: 6 }} />
+                <AnimatedPressable style={styles.deleteBtn} onPress={handleDelete} scaleTo={0.97}>
+                  <Trash2 size={16} color={THEME.accent.expense} style={{ marginRight: 6 }} />
                   <Text style={styles.deleteBtnText}>Delete Record</Text>
-                </TouchableOpacity>
+                </AnimatedPressable>
               )}
             </View>
           </ScrollView>
@@ -217,17 +211,17 @@ export const AddIncomeModal: React.FC<AddIncomeModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#1E293B',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: THEME.bg.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 20,
     maxHeight: '90%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   header: {
     flexDirection: 'row',
@@ -236,11 +230,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: THEME.bg.border,
   },
   title: {
-    color: '#F8FAFC',
-    fontSize: 18,
+    color: THEME.text.primary,
+    fontSize: 17,
     fontWeight: '700',
   },
   closeBtn: {
@@ -250,28 +244,28 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'rgba(244, 63, 94, 0.12)',
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: THEME.accent.expense,
     padding: 10,
     borderRadius: 8,
     marginBottom: 12,
   },
   errorText: {
-    color: '#FCA5A5',
+    color: '#FDA4AF',
     fontSize: 13,
   },
   fieldContainer: {
-    marginVertical: 8,
+    marginVertical: 6,
   },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   label: {
-    color: '#94A3B8',
+    color: THEME.text.secondary,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -280,34 +274,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addTypeToggleText: {
-    color: '#38BDF8',
+    color: THEME.text.secondary,
     fontSize: 12,
     fontWeight: '600',
   },
   chipScroll: {
     flexDirection: 'row',
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   typeChip: {
-    backgroundColor: '#0F172A',
+    backgroundColor: THEME.bg.input,
     borderWidth: 1,
-    borderColor: '#334155',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
+    borderColor: THEME.bg.border,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 6,
   },
   typeChipSelected: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: THEME.bg.chipActive,
+    borderColor: THEME.text.secondary,
   },
   typeChipText: {
-    color: '#94A3B8',
-    fontSize: 14,
-    fontWeight: '600',
+    color: THEME.text.tertiary,
+    fontSize: 13,
+    fontWeight: '500',
   },
   typeChipTextSelected: {
-    color: '#FFFFFF',
+    color: THEME.text.primary,
+    fontWeight: '600',
   },
   newTypeRow: {
     flexDirection: 'row',
@@ -316,73 +311,74 @@ const styles = StyleSheet.create({
   },
   newTypeInput: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: THEME.bg.input,
     borderWidth: 1,
-    borderColor: '#38BDF8',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 44,
-    color: '#F8FAFC',
-    fontSize: 14,
+    borderColor: THEME.bg.borderLight,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    height: 40,
+    color: THEME.text.primary,
+    fontSize: 13.5,
   },
   newTypeAddBtn: {
-    backgroundColor: '#38BDF8',
-    paddingHorizontal: 16,
-    height: 44,
-    borderRadius: 10,
+    backgroundColor: THEME.text.primary,
+    paddingHorizontal: 14,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   newTypeAddBtnText: {
-    color: '#0F172A',
-    fontWeight: '700',
+    color: '#090D16',
+    fontWeight: '600',
+    fontSize: 13,
   },
   dateInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
-    borderWidth: 1.5,
-    borderColor: '#334155',
+    backgroundColor: THEME.bg.input,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
     borderRadius: 12,
     paddingHorizontal: 14,
-    height: 50,
+    height: 48,
   },
   dateInput: {
     flex: 1,
-    color: '#F8FAFC',
-    fontSize: 16,
+    color: THEME.text.primary,
+    fontSize: 15,
     fontWeight: '600',
   },
   actions: {
-    marginTop: 20,
+    marginTop: 18,
     gap: 10,
   },
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: THEME.text.primary,
+    paddingVertical: 13,
+    borderRadius: 10,
   },
   saveBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: '#090D16',
+    fontSize: 15,
     fontWeight: '700',
   },
   deleteBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: 'rgba(244, 63, 94, 0.1)',
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(244, 63, 94, 0.25)',
   },
   deleteBtnText: {
-    color: '#EF4444',
-    fontSize: 15,
+    color: THEME.accent.expense,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

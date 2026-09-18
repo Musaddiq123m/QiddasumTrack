@@ -3,11 +3,10 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
   TextInput,
-  Alert,
   Platform as RNPlatform,
+  Image,
 } from 'react-native';
 import {
   FileSpreadsheet,
@@ -15,11 +14,8 @@ import {
   Upload,
   Plus,
   Trash2,
-  Edit2,
-  Check,
   ShieldCheck,
   Smartphone,
-  Calendar,
   Layers,
   Repeat,
 } from 'lucide-react-native';
@@ -31,6 +27,8 @@ import { RecurringRepo } from '../db/repositories/recurringRepo';
 import { BackupRepo } from '../db/repositories/backupRepo';
 import { AddRecurringModal } from '../components/modals/AddRecurringModal';
 import { formatCurrency } from '../utils/dateUtils';
+import { THEME } from '../theme/colors';
+import { AnimatedPressable } from '../components/AnimatedComponents';
 
 export const SettingsScreen: React.FC = () => {
   const [incomeTypes, setIncomeTypes] = useState<IncomeType[]>([]);
@@ -69,13 +67,13 @@ export const SettingsScreen: React.FC = () => {
     IncomeRepo.addType(newIncomeType.trim());
     setNewIncomeType('');
     loadData();
-    showStatus('Income type added successfully!');
+    showStatus('Income type added.');
   };
 
   const handleDeleteIncomeType = (id: string, name: string) => {
     IncomeRepo.deleteType(id);
     loadData();
-    showStatus(`Deleted income type: ${name}`);
+    showStatus(`Removed income type: ${name}`);
   };
 
   // Expense Category handlers
@@ -84,23 +82,23 @@ export const SettingsScreen: React.FC = () => {
     ExpenseRepo.addType(newExpenseType.trim());
     setNewExpenseType('');
     loadData();
-    showStatus('Expense category added successfully!');
+    showStatus('Expense category added.');
   };
 
   const handleDeleteExpenseType = (id: string, name: string) => {
     ExpenseRepo.deleteType(id);
     loadData();
-    showStatus(`Deleted expense category: ${name}`);
+    showStatus(`Removed category: ${name}`);
   };
 
   // Recurring handlers
   const handleSaveRecurring = (name: string, amount: number, startDate: string, endDate: string, id?: string) => {
     if (id) {
       RecurringRepo.update(id, name, amount, startDate, endDate);
-      showStatus('Recurring expense updated!');
+      showStatus('Recurring expense updated.');
     } else {
       RecurringRepo.add(name, amount, startDate, endDate);
-      showStatus('Recurring expense added!');
+      showStatus('Recurring expense added.');
     }
     loadData();
   };
@@ -108,7 +106,7 @@ export const SettingsScreen: React.FC = () => {
   const handleDeleteRecurring = (id: string) => {
     RecurringRepo.delete(id);
     loadData();
-    showStatus('Recurring expense deleted!');
+    showStatus('Recurring expense removed.');
   };
 
   // Excel Export
@@ -116,7 +114,7 @@ export const SettingsScreen: React.FC = () => {
     try {
       const result = await BackupRepo.exportToExcel();
       if (result.success) {
-        showStatus('Data successfully exported to Excel (.xlsx)!');
+        showStatus('Data exported to Excel (.xlsx).');
       } else {
         showStatus(result.error || 'Failed to export data', 'error');
       }
@@ -129,30 +127,32 @@ export const SettingsScreen: React.FC = () => {
   const handleImportExcel = async () => {
     try {
       if (RNPlatform.OS === 'web') {
-        // Create invisible HTML file input for web preview
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.xlsx, .xls';
+        input.accept = '.xlsx, .xls, .csv';
         input.onchange = async (e: any) => {
           const file = e.target.files[0];
           if (!file) return;
           const reader = new FileReader();
           reader.onload = async (evt: any) => {
-            const bstr = evt.target.result;
-            const wb = XLSX.read(bstr, { type: 'binary' });
-            const result = await BackupRepo.importFromWorkbook(wb);
-            if (result.success) {
-              loadData();
-              showStatus(`Imported ${result.count} records successfully!`);
-            } else {
-              showStatus(result.error || 'Failed to import backup', 'error');
+            try {
+              const data = new Uint8Array(evt.target.result);
+              const wb = XLSX.read(data, { type: 'array' });
+              const result = await BackupRepo.importFromWorkbook(wb);
+              if (result.success) {
+                loadData();
+                showStatus(`Imported ${result.count} records successfully.`);
+              } else {
+                showStatus(result.error || 'Failed to import backup', 'error');
+              }
+            } catch (readErr: any) {
+              showStatus(readErr.message || 'Error reading Excel file', 'error');
             }
           };
-          reader.readAsBinaryString(file);
+          reader.readAsArrayBuffer(file);
         };
         input.click();
       } else {
-        // Native (Android / iOS)
         const DocumentPicker = require('expo-document-picker');
         const FileSystem = require('expo-file-system');
 
@@ -160,6 +160,9 @@ export const SettingsScreen: React.FC = () => {
           type: [
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'application/vnd.ms-excel',
+            'text/csv',
+            'text/comma-separated-values',
+            '*/*',
           ],
           copyToCacheDirectory: true,
         });
@@ -176,7 +179,7 @@ export const SettingsScreen: React.FC = () => {
 
         if (result.success) {
           loadData();
-          showStatus(`Imported ${result.count} records successfully!`);
+          showStatus(`Imported ${result.count} records successfully.`);
         } else {
           showStatus(result.error || 'Failed to import backup', 'error');
         }
@@ -204,7 +207,7 @@ export const SettingsScreen: React.FC = () => {
         {/* Section: Data Management (Excel Export / Import) */}
         <View style={styles.card}>
           <View style={styles.titleRow}>
-            <FileSpreadsheet size={20} color="#10B981" style={{ marginRight: 8 }} />
+            <FileSpreadsheet size={18} color={THEME.text.secondary} style={{ marginRight: 8 }} />
             <Text style={styles.cardTitle}>Data Backup & Restore</Text>
           </View>
           <Text style={styles.cardSub}>
@@ -212,15 +215,15 @@ export const SettingsScreen: React.FC = () => {
           </Text>
 
           <View style={styles.backupActions}>
-            <TouchableOpacity style={styles.exportBtn} onPress={handleExportExcel} activeOpacity={0.8}>
-              <Download size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <AnimatedPressable style={styles.exportBtn} onPress={handleExportExcel} scaleTo={0.97}>
+              <Download size={16} color="#090D16" style={{ marginRight: 6 }} />
               <Text style={styles.btnText}>Export to Excel (.xlsx)</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
 
-            <TouchableOpacity style={styles.importBtn} onPress={handleImportExcel} activeOpacity={0.8}>
-              <Upload size={18} color="#38BDF8" style={{ marginRight: 8 }} />
-              <Text style={[styles.btnText, { color: '#38BDF8' }]}>Import / Restore Data</Text>
-            </TouchableOpacity>
+            <AnimatedPressable style={styles.importBtn} onPress={handleImportExcel} scaleTo={0.97}>
+              <Upload size={16} color={THEME.text.primary} style={{ marginRight: 6 }} />
+              <Text style={[styles.btnText, { color: THEME.text.primary }]}>Import / Restore Data</Text>
+            </AnimatedPressable>
           </View>
         </View>
 
@@ -228,20 +231,20 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.card}>
           <View style={styles.headerWithAction}>
             <View style={styles.titleRow}>
-              <Repeat size={20} color="#6366F1" style={{ marginRight: 8 }} />
+              <Repeat size={18} color={THEME.text.secondary} style={{ marginRight: 8 }} />
               <Text style={styles.cardTitle}>Recurring Expenses</Text>
             </View>
-            <TouchableOpacity
+            <AnimatedPressable
               style={styles.addSmallBtn}
               onPress={() => {
                 setEditingRecurring(null);
                 setIsRecurringModalOpen(true);
               }}
-              activeOpacity={0.7}
+              scaleTo={0.92}
             >
-              <Plus size={14} color="#6366F1" style={{ marginRight: 4 }} />
+              <Plus size={12} color={THEME.text.primary} style={{ marginRight: 4 }} />
               <Text style={styles.addSmallBtnText}>Add</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
           <Text style={styles.cardSub}>
             Costs like rent and electricity distributed across their active period.
@@ -251,14 +254,14 @@ export const SettingsScreen: React.FC = () => {
             <Text style={styles.emptyText}>No recurring expenses configured.</Text>
           ) : (
             recurringExpenses.map((rec) => (
-              <TouchableOpacity
+              <AnimatedPressable
                 key={rec.id}
                 style={styles.recurringItem}
                 onPress={() => {
                   setEditingRecurring(rec);
                   setIsRecurringModalOpen(true);
                 }}
-                activeOpacity={0.7}
+                scaleTo={0.98}
               >
                 <View style={styles.recurringLeft}>
                   <Text style={styles.recurringName}>{rec.name}</Text>
@@ -270,7 +273,7 @@ export const SettingsScreen: React.FC = () => {
                   <Text style={styles.recurringAmount}>{formatCurrency(rec.amount)}</Text>
                   <Text style={styles.recurringRate}>~{formatCurrency(rec.daily_cost || 0)}/day</Text>
                 </View>
-              </TouchableOpacity>
+              </AnimatedPressable>
             ))
           )}
         </View>
@@ -278,7 +281,7 @@ export const SettingsScreen: React.FC = () => {
         {/* Section: Income Types */}
         <View style={styles.card}>
           <View style={styles.titleRow}>
-            <Layers size={20} color="#10B981" style={{ marginRight: 8 }} />
+            <Layers size={18} color={THEME.text.secondary} style={{ marginRight: 8 }} />
             <Text style={styles.cardTitle}>Income Types</Text>
           </View>
 
@@ -290,22 +293,22 @@ export const SettingsScreen: React.FC = () => {
               value={newIncomeType}
               onChangeText={setNewIncomeType}
             />
-            <TouchableOpacity style={styles.addBtn} onPress={handleAddIncomeType} activeOpacity={0.8}>
-              <Plus size={18} color="#FFFFFF" />
-            </TouchableOpacity>
+            <AnimatedPressable style={styles.addBtn} onPress={handleAddIncomeType} scaleTo={0.9}>
+              <Plus size={16} color="#090D16" />
+            </AnimatedPressable>
           </View>
 
           <View style={styles.chipGrid}>
             {incomeTypes.map((t) => (
               <View key={t.id} style={styles.categoryBadge}>
                 <Text style={styles.categoryBadgeText}>{t.name}</Text>
-                <TouchableOpacity
+                <AnimatedPressable
                   onPress={() => handleDeleteIncomeType(t.id, t.name)}
                   style={styles.deleteBadgeBtn}
-                  activeOpacity={0.7}
+                  scaleTo={0.88}
                 >
-                  <Trash2 size={12} color="#94A3B8" />
-                </TouchableOpacity>
+                  <Trash2 size={11} color={THEME.text.tertiary} />
+                </AnimatedPressable>
               </View>
             ))}
           </View>
@@ -314,7 +317,7 @@ export const SettingsScreen: React.FC = () => {
         {/* Section: Expense Categories */}
         <View style={styles.card}>
           <View style={styles.titleRow}>
-            <Layers size={20} color="#EF4444" style={{ marginRight: 8 }} />
+            <Layers size={18} color={THEME.text.secondary} style={{ marginRight: 8 }} />
             <Text style={styles.cardTitle}>Expense Categories</Text>
           </View>
 
@@ -326,26 +329,22 @@ export const SettingsScreen: React.FC = () => {
               value={newExpenseType}
               onChangeText={setNewExpenseType}
             />
-            <TouchableOpacity
-              style={[styles.addBtn, { backgroundColor: '#EF4444' }]}
-              onPress={handleAddExpenseType}
-              activeOpacity={0.8}
-            >
-              <Plus size={18} color="#FFFFFF" />
-            </TouchableOpacity>
+            <AnimatedPressable style={styles.addBtn} onPress={handleAddExpenseType} scaleTo={0.9}>
+              <Plus size={16} color="#090D16" />
+            </AnimatedPressable>
           </View>
 
           <View style={styles.chipGrid}>
             {expenseTypes.map((t) => (
               <View key={t.id} style={styles.categoryBadge}>
                 <Text style={styles.categoryBadgeText}>{t.name}</Text>
-                <TouchableOpacity
+                <AnimatedPressable
                   onPress={() => handleDeleteExpenseType(t.id, t.name)}
                   style={styles.deleteBadgeBtn}
-                  activeOpacity={0.7}
+                  scaleTo={0.88}
                 >
-                  <Trash2 size={12} color="#94A3B8" />
-                </TouchableOpacity>
+                  <Trash2 size={11} color={THEME.text.tertiary} />
+                </AnimatedPressable>
               </View>
             ))}
           </View>
@@ -353,13 +352,24 @@ export const SettingsScreen: React.FC = () => {
 
         {/* Section: Device & Privacy Info */}
         <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <ShieldCheck size={18} color="#10B981" style={{ marginRight: 8 }} />
-            <Text style={styles.infoText}>100% Local-First & Offline Privacy</Text>
+          <View style={styles.brandRow}>
+            <Image
+              source={require('../../assets/logo.jpg')}
+              style={styles.settingsLogo}
+              resizeMode="cover"
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingsBrandTitle}>QiddasumTrack</Text>
+              <Text style={styles.settingsBrandSub}>Budget & Activity Tracker • v1.0.0</Text>
+            </View>
+          </View>
+          <View style={[styles.infoRow, styles.infoDivider]}>
+            <ShieldCheck size={16} color={THEME.text.secondary} style={{ marginRight: 8 }} />
+            <Text style={styles.infoText}>100% Local-First & Private (No Cloud)</Text>
           </View>
           <View style={styles.infoRow}>
-            <Smartphone size={18} color="#38BDF8" style={{ marginRight: 8 }} />
-            <Text style={styles.infoText}>Optimized for Redmi Note 12 (MIUI / 120Hz)</Text>
+            <Smartphone size={16} color={THEME.text.secondary} style={{ marginRight: 8 }} />
+            <Text style={styles.infoText}>Optimized for Redmi Note 12</Text>
           </View>
         </View>
 
@@ -384,211 +394,240 @@ export const SettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: THEME.bg.main,
   },
   scrollContent: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 8,
   },
   statusBanner: {
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 14,
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
     borderWidth: 1,
   },
   statusSuccess: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: '#10B981',
+    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+    borderColor: 'rgba(52, 211, 153, 0.3)',
   },
   statusError: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: '#EF4444',
+    backgroundColor: 'rgba(244, 63, 94, 0.1)',
+    borderColor: 'rgba(244, 63, 94, 0.3)',
   },
   statusText: {
-    color: '#F8FAFC',
-    fontSize: 13,
-    fontWeight: '600',
+    color: THEME.text.primary,
+    fontSize: 12.5,
+    fontWeight: '500',
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#1E293B',
+    backgroundColor: THEME.bg.card,
     borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
+    padding: 14,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   headerWithAction: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   cardTitle: {
-    color: '#F8FAFC',
-    fontSize: 16,
-    fontWeight: '700',
+    color: THEME.text.primary,
+    fontSize: 15,
+    fontWeight: '600',
   },
   cardSub: {
-    color: '#94A3B8',
+    color: THEME.text.tertiary,
     fontSize: 12,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   backupActions: {
-    gap: 10,
-    marginTop: 6,
+    gap: 8,
+    marginTop: 4,
   },
   exportBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: THEME.text.primary,
+    paddingVertical: 12,
+    borderRadius: 10,
   },
   importBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: THEME.bg.input,
+    paddingVertical: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#38BDF8',
+    borderColor: THEME.bg.border,
   },
   btnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    color: '#090D16',
+    fontSize: 14,
+    fontWeight: '600',
   },
   addSmallBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: THEME.bg.input,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#6366F1',
+    borderColor: THEME.bg.border,
   },
   addSmallBtnText: {
-    color: '#818CF8',
-    fontSize: 12,
-    fontWeight: '700',
+    color: THEME.text.primary,
+    fontSize: 11.5,
+    fontWeight: '600',
   },
   recurringItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
-    padding: 12,
+    backgroundColor: THEME.bg.input,
+    padding: 11,
     borderRadius: 10,
-    marginBottom: 8,
+    marginBottom: 6,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
   },
   recurringLeft: {
     flex: 1,
   },
   recurringName: {
-    color: '#F8FAFC',
-    fontSize: 15,
+    color: THEME.text.primary,
+    fontSize: 14,
     fontWeight: '600',
   },
   recurringDates: {
-    color: '#94A3B8',
-    fontSize: 12,
+    color: THEME.text.tertiary,
+    fontSize: 11.5,
     marginTop: 2,
   },
   recurringRight: {
     alignItems: 'flex-end',
   },
   recurringAmount: {
-    color: '#F8FAFC',
-    fontSize: 15,
+    color: THEME.text.primary,
+    fontSize: 14,
     fontWeight: '700',
   },
   recurringRate: {
-    color: '#818CF8',
-    fontSize: 12,
+    color: THEME.accent.recurring,
+    fontSize: 11.5,
     marginTop: 2,
   },
   emptyText: {
-    color: '#64748B',
-    fontSize: 13,
+    color: THEME.text.tertiary,
+    fontSize: 12.5,
     fontStyle: 'italic',
     marginVertical: 4,
   },
   addRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#0F172A',
-    borderWidth: 1.5,
-    borderColor: '#334155',
-    borderRadius: 10,
+    backgroundColor: THEME.bg.input,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
+    borderRadius: 8,
     paddingHorizontal: 12,
-    height: 44,
-    color: '#F8FAFC',
-    fontSize: 14,
+    height: 40,
+    color: THEME.text.primary,
+    fontSize: 13.5,
   },
   addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: '#10B981',
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: THEME.text.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chipGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: THEME.bg.input,
     borderWidth: 1,
-    borderColor: '#334155',
-    paddingLeft: 12,
+    borderColor: THEME.bg.border,
+    paddingLeft: 10,
     paddingRight: 6,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingVertical: 5,
+    borderRadius: 14,
   },
   categoryBadgeText: {
-    color: '#F8FAFC',
-    fontSize: 13,
+    color: THEME.text.primary,
+    fontSize: 12.5,
     fontWeight: '500',
     marginRight: 6,
   },
   deleteBadgeBtn: {
-    padding: 4,
+    padding: 3,
   },
   infoCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: THEME.bg.card,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.bg.border,
     marginBottom: 16,
     gap: 8,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  settingsLogo: {
+    width: 38,
+    height: 38,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: THEME.bg.borderLight,
+    marginRight: 12,
+  },
+  settingsBrandTitle: {
+    color: THEME.text.primary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  settingsBrandSub: {
+    color: THEME.text.secondary,
+    fontSize: 11.5,
+    marginTop: 1,
+  },
+  infoDivider: {
+    borderTopWidth: 1,
+    borderTopColor: THEME.bg.border,
+    paddingTop: 8,
+    marginTop: 2,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   infoText: {
-    color: '#94A3B8',
+    color: THEME.text.tertiary,
     fontSize: 12,
   },
 });

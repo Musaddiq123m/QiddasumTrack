@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
-import Svg, { Line, Circle, Path, G, Text as SvgText } from 'react-native-svg';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import Svg, { Line, Circle, Path, G, Text as SvgText, Rect } from 'react-native-svg';
 import { ChartDataPoint } from '../../types';
+import { THEME } from '../../theme/colors';
 
 interface LineChartProps {
   data: ChartDataPoint[];
@@ -17,20 +18,27 @@ interface LineChartProps {
 
 export const LineChart: React.FC<LineChartProps> = ({
   data,
-  height = 200,
-  lineColor = '#10B981',
-  fillColor = 'rgba(16, 185, 129, 0.12)',
+  height = 210,
+  lineColor = THEME.accent.blue,
+  fillColor = 'rgba(56, 189, 248, 0.08)',
   valuePrefix = '',
   valueSuffix = '',
   onPointPress,
-  selectedIndex,
+  selectedIndex: propSelectedIndex,
   emptyMessage = 'No data available for this period',
 }) => {
-  const screenWidth = Dimensions.get('window').width;
-  const chartWidth = Math.max(300, screenWidth - 48); // 24px padding on each side
+  const [internalSelectedIndex, setInternalSelectedIndex] = useState<number>(
+    data && data.length > 0 ? data.length - 1 : 0
+  );
+
+  const activeIndex = propSelectedIndex !== undefined ? propSelectedIndex : internalSelectedIndex;
+
+  const { width: windowWidth } = useWindowDimensions();
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+  const chartWidth = containerWidth > 0 ? containerWidth : Math.max(260, windowWidth - 60);
   const paddingBottom = 32;
-  const paddingTop = 24;
-  const paddingHorizontal = 24;
+  const paddingTop = 36;
+  const paddingHorizontal = 20;
 
   const innerWidth = chartWidth - paddingHorizontal * 2;
   const innerHeight = height - paddingTop - paddingBottom;
@@ -47,7 +55,7 @@ export const LineChart: React.FC<LineChartProps> = ({
 
   const values = data.map((d) => d.value);
   const maxValue = Math.max(...values);
-  const safeMax = maxValue === 0 ? 10 : maxValue * 1.15; // 15% headroom
+  const safeMax = maxValue === 0 ? 10 : maxValue * 1.2;
 
   const getX = (index: number) => {
     if (data.length === 1) return paddingHorizontal + innerWidth / 2;
@@ -58,7 +66,7 @@ export const LineChart: React.FC<LineChartProps> = ({
     return paddingTop + innerHeight - (val / safeMax) * innerHeight;
   };
 
-  // Build SVG Path
+  // Build SVG Line Path
   let pathD = `M ${getX(0)} ${getY(data[0].value)}`;
   for (let i = 1; i < data.length; i++) {
     pathD += ` L ${getX(i)} ${getY(data[i].value)}`;
@@ -67,11 +75,44 @@ export const LineChart: React.FC<LineChartProps> = ({
   // Area under path
   const areaD = `${pathD} L ${getX(data.length - 1)} ${paddingTop + innerHeight} L ${getX(0)} ${paddingTop + innerHeight} Z`;
 
-  // Horizontal guide lines (3 lines)
+  // Horizontal guide lines
   const gridLevels = [0, safeMax * 0.5, safeMax];
 
+  const formatShortValue = (val: number) => {
+    if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+    if (val >= 1000) return `${(val / 1000).toFixed(val >= 10000 ? 0 : 1)}k`;
+    return `${val}`;
+  };
+
+  const selectedPoint = data[activeIndex] || data[data.length - 1];
+
+  const handlePointTap = (index: number, pt: ChartDataPoint) => {
+    setInternalSelectedIndex(index);
+    onPointPress?.(pt, index);
+  };
+
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onLayout={(e) => {
+        const w = e.nativeEvent.layout.width;
+        if (w > 0 && Math.abs(w - containerWidth) > 1) {
+          setContainerWidth(w);
+        }
+      }}
+    >
+      {/* Active Point Callout Pill */}
+      {selectedPoint && (
+        <View style={styles.calloutPill}>
+          <Text style={styles.calloutLabel}>{selectedPoint.label}: </Text>
+          <Text style={styles.calloutValue}>
+            {valuePrefix}
+            {selectedPoint.value.toLocaleString()}
+            {valueSuffix}
+          </Text>
+        </View>
+      )}
+
       <Svg width={chartWidth} height={height}>
         {/* Horizontal Grid lines */}
         {gridLevels.map((lvl, idx) => {
@@ -83,19 +124,19 @@ export const LineChart: React.FC<LineChartProps> = ({
                 y1={y}
                 x2={chartWidth - paddingHorizontal}
                 y2={y}
-                stroke="#334155"
-                strokeDasharray="4, 4"
+                stroke={THEME.bg.border}
+                strokeDasharray="3, 3"
                 strokeWidth={1}
               />
               <SvgText
                 x={paddingHorizontal}
                 y={y - 4}
-                fill="#94A3B8"
-                fontSize={10}
+                fill={THEME.text.tertiary}
+                fontSize={9}
                 fontWeight="500"
               >
                 {valuePrefix}
-                {Math.round(lvl) >= 1000 ? `${(Math.round(lvl) / 1000).toFixed(0)}k` : Math.round(lvl)}
+                {formatShortValue(Math.round(lvl))}
                 {valueSuffix}
               </SvgText>
             </G>
@@ -105,33 +146,65 @@ export const LineChart: React.FC<LineChartProps> = ({
         {/* Fill Area */}
         <Path d={areaD} fill={fillColor} />
 
-        {/* Line */}
-        <Path d={pathD} fill="none" stroke={lineColor} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+        {/* Main Smooth Line */}
+        <Path
+          d={pathD}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
 
-        {/* Points & Labels */}
+        {/* Points & Individual Value Labels */}
         {data.map((d, index) => {
           const x = getX(index);
           const y = getY(d.value);
-          const isSelected = selectedIndex === index;
+          const isSelected = activeIndex === index;
 
           return (
             <G key={`point-${index}`}>
-              {/* Point circle */}
+              {/* Individual value label above point */}
+              {d.value > 0 && (
+                <SvgText
+                  x={x}
+                  y={y - 8}
+                  fill={isSelected ? THEME.text.primary : THEME.text.secondary}
+                  fontSize={8.5}
+                  fontWeight={isSelected ? 'bold' : '500'}
+                  textAnchor="middle"
+                >
+                  {formatShortValue(d.value)}
+                </SvgText>
+              )}
+
+              {/* Point halo if selected */}
+              {isSelected && (
+                <Circle
+                  cx={x}
+                  cy={y}
+                  r={8}
+                  fill="rgba(56, 189, 248, 0.2)"
+                />
+              )}
+
+              {/* Main Point circle */}
               <Circle
                 cx={x}
                 cy={y}
-                r={isSelected ? 6 : 4}
-                fill={isSelected ? '#FFFFFF' : lineColor}
-                stroke={isSelected ? lineColor : '#0F172A'}
-                strokeWidth={2}
+                r={isSelected ? 5 : 3.5}
+                fill={isSelected ? THEME.text.primary : lineColor}
+                stroke={THEME.bg.card}
+                strokeWidth={1.5}
               />
-              {/* Bottom Label */}
+
+              {/* Bottom Date/Month Label */}
               <SvgText
                 x={x}
-                y={height - 8}
-                fill={isSelected ? '#F8FAFC' : '#94A3B8'}
-                fontSize={10}
-                fontWeight={isSelected ? 'bold' : 'normal'}
+                y={height - 10}
+                fill={isSelected ? THEME.text.primary : THEME.text.tertiary}
+                fontSize={9}
+                fontWeight={isSelected ? '600' : 'normal'}
                 textAnchor="middle"
               >
                 {d.label}
@@ -141,40 +214,59 @@ export const LineChart: React.FC<LineChartProps> = ({
         })}
       </Svg>
 
-      {/* Touch overlays for interactive tapping */}
-      {onPointPress && (
-        <View style={[StyleSheet.absoluteFill, { flexDirection: 'row', paddingHorizontal }]}>
-          {data.map((d, index) => (
-            <TouchableOpacity
-              key={`touch-${index}`}
-              style={{ flex: 1, height: '100%' }}
-              activeOpacity={0.7}
-              onPress={() => onPointPress(d, index)}
-            />
-          ))}
-        </View>
-      )}
+      {/* Interactive Touch Layer */}
+      <View style={[StyleSheet.absoluteFill, { flexDirection: 'row', paddingHorizontal, top: 30 }]}>
+        {data.map((d, index) => (
+          <TouchableOpacity
+            key={`touch-${index}`}
+            style={{ flex: 1, height: '100%' }}
+            activeOpacity={0.7}
+            onPress={() => handlePointTap(index, d)}
+          />
+        ))}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    marginVertical: 8,
+    marginVertical: 4,
+  },
+  calloutPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME.bg.input,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginBottom: 6,
+  },
+  calloutLabel: {
+    color: THEME.text.secondary,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  calloutValue: {
+    color: THEME.text.primary,
+    fontSize: 13,
+    fontWeight: '700',
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: THEME.bg.card,
     borderRadius: 12,
     marginVertical: 8,
   },
   emptyText: {
-    color: '#94A3B8',
-    fontSize: 14,
-    fontStyle: 'italic',
+    color: THEME.text.tertiary,
+    fontSize: 13,
   },
 });
