@@ -107,20 +107,44 @@ export class BackupRepo {
       }
 
       // Native (Android / iOS)
-      let FileSystem: any;
-      try {
-        FileSystem = require('expo-file-system/legacy');
-      } catch (e) {
-        FileSystem = require('expo-file-system');
-      }
       const Sharing = require('expo-sharing');
-
       const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
-      const uri = `${FileSystem.documentDirectory}${fileName}`;
+      let uri = '';
 
-      await FileSystem.writeAsStringAsync(uri, wbout, {
-        encoding: FileSystem.EncodingType?.Base64 || 'base64',
-      });
+      // 1. Try modern expo-file-system File/Paths API (Expo SDK 52/54/57)
+      try {
+        const { File, Paths } = require('expo-file-system');
+        if (File && Paths && Paths.document) {
+          const file = new File(Paths.document, fileName);
+          if (file.exists) {
+            file.delete();
+          }
+          file.create();
+          file.write(wbout, { encoding: 'base64' });
+          uri = file.uri;
+        }
+      } catch (e) {
+        // fallback
+      }
+
+      // 2. Try legacy API if modern API was unavailable
+      if (!uri) {
+        try {
+          const FileSystemLegacy = require('expo-file-system/legacy');
+          if (FileSystemLegacy && FileSystemLegacy.documentDirectory && typeof FileSystemLegacy.writeAsStringAsync === 'function') {
+            uri = `${FileSystemLegacy.documentDirectory}${fileName}`;
+            await FileSystemLegacy.writeAsStringAsync(uri, wbout, {
+              encoding: FileSystemLegacy.EncodingType?.Base64 || 'base64',
+            });
+          }
+        } catch (e2) {
+          // fallback
+        }
+      }
+
+      if (!uri) {
+        throw new Error('Failed to create file for export.');
+      }
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
@@ -179,7 +203,9 @@ export class BackupRepo {
 
           if (walkingSheet) {
             const rawWalking = XLSX.utils.sheet_to_json<any>(walkingSheet);
-            for (const w of rawWalking) {
+            console.log('[Import] rawWalking length:', rawWalking.length);
+            for (let idx = 0; idx < rawWalking.length; idx++) {
+              const w = rawWalking[idx];
               // Filter out non-walk activities if Strava 'Activity Type' column is present
               const activityType = (w['Activity Type'] || w['activity_type'] || w['Type'] || '').toLowerCase();
               if (activityType && !['walk', 'walking', 'hike', 'hiking', 'run', 'running'].includes(activityType)) {
@@ -198,13 +224,26 @@ export class BackupRepo {
                   const m = String(d.getUTCMonth() + 1).padStart(2, '0');
                   const day = String(d.getUTCDate()).padStart(2, '0');
                   formattedDate = `${y}-${m}-${day}`;
-                } else {
-                  const d = new Date(rawDate);
-                  if (!isNaN(d.getTime())) {
-                    const y = d.getFullYear();
-                    const m = String(d.getMonth() + 1).padStart(2, '0');
-                    const day = String(d.getDate()).padStart(2, '0');
-                    formattedDate = `${y}-${m}-${day}`;
+                } else if (typeof rawDate === 'string') {
+                  const monthMap: { [k: string]: string } = {
+                    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+                    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+                  };
+                  const match = rawDate.match(/([a-zA-Z]{3,9})\s+(\d{1,2}),?\s+(\d{4})/);
+                  if (match) {
+                    const monStr = match[1].slice(0, 3).toLowerCase();
+                    const mm = monthMap[monStr] || '01';
+                    const dd = match[2].padStart(2, '0');
+                    const yyyy = match[3];
+                    formattedDate = `${yyyy}-${mm}-${dd}`;
+                  } else {
+                    const d = new Date(rawDate);
+                    if (!isNaN(d.getTime())) {
+                      const y = d.getFullYear();
+                      const m = String(d.getMonth() + 1).padStart(2, '0');
+                      const day = String(d.getDate()).padStart(2, '0');
+                      formattedDate = `${y}-${m}-${day}`;
+                    }
                   }
                 }
               }
@@ -232,9 +271,17 @@ export class BackupRepo {
                 speed = Number(speed.toFixed(1));
               }
 
+              if (idx === 0) {
+                console.log('[Import] Row 0 parsed:', { rawDate, formattedDate, dist, steps, speed });
+              }
+
               if (formattedDate && (steps > 0 || dist > 0)) {
-                WalkingRepo.add(steps, dist, speed, formattedDate);
-                importedCount++;
+                try {
+                  WalkingRepo.add(steps, dist, speed, formattedDate);
+                  importedCount++;
+                } catch (rowErr: any) {
+                  console.log('[Import] WalkingRepo.add error at row', idx, rowErr?.message);
+                }
               }
             }
           }

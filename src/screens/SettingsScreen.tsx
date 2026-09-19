@@ -170,44 +170,55 @@ export const SettingsScreen: React.FC = () => {
 
         const asset = docRes.assets[0];
 
-        // Safe reading for Expo SDK 52+ on Android / iOS
-        let base64 = '';
+        let workbook: any = null;
+        const isNative = require('react-native').Platform.OS !== 'web';
+
+        // Read file contents into workbook
         try {
-          const FileSystemLegacy = require('expo-file-system/legacy');
-          if (FileSystemLegacy && FileSystemLegacy.readAsStringAsync) {
-            base64 = await FileSystemLegacy.readAsStringAsync(asset.uri, {
-              encoding: FileSystemLegacy.EncodingType?.Base64 || 'base64',
-            });
-          }
-        } catch (e1) {
-          // fallback
-        }
-
-        if (!base64) {
+          const response = await fetch(asset.uri);
+          const arrayBuf = await response.arrayBuffer();
+          workbook = XLSX.read(new Uint8Array(arrayBuf), { type: 'array' });
+        } catch (fetchErr: any) {
+          // Fallback to File class if fetch is unavailable
           try {
-            const { File } = require('expo-file-system');
-            if (File) {
-              const fileObj = new File(asset.uri);
-              base64 = await fileObj.base64();
+            const { File: ExpoFile } = require('expo-file-system');
+            if (ExpoFile) {
+              const fileObj = new ExpoFile(asset.uri);
+              const b64 = await fileObj.base64();
+              if (b64) workbook = XLSX.read(b64, { type: 'base64' });
             }
-          } catch (e2) {
-            // fallback
+          } catch {
+            // continue
           }
         }
 
-        if (!base64) {
-          const FileSystem = require('expo-file-system');
-          base64 = await FileSystem.readAsStringAsync(asset.uri, {
-            encoding: FileSystem.EncodingType?.Base64 || 'base64',
-          });
+        // Last resort: DocumentPicker base64 (web only)
+        if (!workbook && asset.base64) {
+          try {
+            workbook = XLSX.read(asset.base64, { type: 'base64' });
+          } catch (e) {
+            // continue
+          }
         }
 
-        const wb = XLSX.read(base64, { type: 'base64' });
-        const result = await BackupRepo.importFromWorkbook(wb);
+        if (!workbook) {
+          throw new Error('Unable to read the selected file. Please try again.');
+        }
+
+        // Debug: show what the workbook contains
+        const sheetNames = workbook.SheetNames || [];
+        let totalRows = 0;
+        for (const sn of sheetNames) {
+          const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sn]);
+          totalRows += rows.length;
+          console.log(`[Import] Sheet "${sn}" has ${rows.length} rows. Row 0:`, rows[0]);
+        }
+
+        const result = await BackupRepo.importFromWorkbook(workbook);
 
         if (result.success) {
           loadData();
-          showStatus(`Imported ${result.count} records successfully.`);
+          showStatus(`Imported ${result.count} of ${totalRows} rows (sheets: ${sheetNames.join(', ')}).`);
         } else {
           showStatus(result.error || 'Failed to import backup', 'error');
         }
