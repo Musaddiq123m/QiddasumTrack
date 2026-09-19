@@ -26,3 +26,7 @@ android/
 ios/
 .gradle/
 build/
+sample_tracker_data.xlsx
+logo.jpg
+activities.csv
+activities_backup.csv
