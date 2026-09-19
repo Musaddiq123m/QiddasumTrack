@@ -187,12 +187,15 @@ export const StepsScreen: React.FC = () => {
             ))}
           </View>
 
-          {/* Line Chart showing individual values and interactive tap */}
+          {/* Line Chart showing Strava-style stats and interactive vertical cursor */}
           <LineChart
             data={chartData}
-            lineColor={THEME.accent.blue}
-            fillColor="rgba(56, 189, 248, 0.08)"
+            lineColor="#F97316"
+            fillColor="rgba(249, 115, 22, 0.18)"
             valueSuffix={metric === 'distance' ? ' km' : ''}
+            showFitnessHeader={true}
+            timeframe={timeframe}
+            timeframeLabel={timeframe === '7d' ? 'Past 7 days' : timeframe === '12w' ? 'Past 12 weeks' : 'Past 12 months'}
           />
         </View>
 

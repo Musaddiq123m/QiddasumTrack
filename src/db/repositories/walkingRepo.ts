@@ -8,6 +8,9 @@ import {
   getPast7Days,
   getTodayString,
   getYesterdayString,
+  formatWeekInterval,
+  formatDisplayDate,
+  formatMonthYear,
 } from '../../utils/dateUtils';
 
 export class WalkingRepo {
@@ -131,14 +134,30 @@ export class WalkingRepo {
       const days = getPast7Days();
       return days.map((d) => {
         const records = db.getAll<WalkingRecord>('SELECT * FROM walking_records WHERE date = ?;', [d.date]);
-        const val = records.reduce(
-          (sum, r) => sum + (metric === 'steps' ? r.steps : r.distance_km),
-          0
+        const totalSteps = records.reduce((sum, r) => sum + r.steps, 0);
+        const totalDist = Number(records.reduce((sum, r) => sum + r.distance_km, 0).toFixed(2));
+        const avgSpeed = records.length > 0
+          ? Number((records.reduce((sum, r) => sum + r.speed_kmh, 0) / records.length).toFixed(1))
+          : 0;
+        const totalMinutes = Math.round(
+          records.reduce((sum, r) => {
+            const spd = r.speed_kmh > 0 ? r.speed_kmh : (avgSpeed > 0 ? avgSpeed : 4.8);
+            return sum + (r.distance_km > 0 ? (r.distance_km / spd) * 60 : 0);
+          }, 0)
         );
+        const durationHours = Number((totalMinutes / 60).toFixed(1));
+        const val = metric === 'steps' ? totalSteps : totalDist;
+
         return {
           label: d.label,
           value: metric === 'steps' ? Math.round(val) : Number(val.toFixed(1)),
           rawKey: d.date,
+          distanceKm: totalDist,
+          steps: totalSteps,
+          speedKmh: avgSpeed,
+          durationHours,
+          durationMinutes: totalMinutes,
+          periodTitle: formatDisplayDate(d.date),
         };
       });
     }
@@ -150,14 +169,30 @@ export class WalkingRepo {
           'SELECT * FROM walking_records WHERE date >= ? AND date <= ?;',
           [w.start, w.end]
         );
-        const val = records.reduce(
-          (sum, r) => sum + (metric === 'steps' ? r.steps : r.distance_km),
-          0
+        const totalSteps = records.reduce((sum, r) => sum + r.steps, 0);
+        const totalDist = Number(records.reduce((sum, r) => sum + r.distance_km, 0).toFixed(2));
+        const avgSpeed = records.length > 0
+          ? Number((records.reduce((sum, r) => sum + r.speed_kmh, 0) / records.length).toFixed(1))
+          : 0;
+        const totalMinutes = Math.round(
+          records.reduce((sum, r) => {
+            const spd = r.speed_kmh > 0 ? r.speed_kmh : (avgSpeed > 0 ? avgSpeed : 4.8);
+            return sum + (r.distance_km > 0 ? (r.distance_km / spd) * 60 : 0);
+          }, 0)
         );
+        const durationHours = Number((totalMinutes / 60).toFixed(1));
+        const val = metric === 'steps' ? totalSteps : totalDist;
+
         return {
           label: w.label,
           value: metric === 'steps' ? Math.round(val) : Number(val.toFixed(1)),
           rawKey: `${w.start} to ${w.end}`,
+          distanceKm: totalDist,
+          steps: totalSteps,
+          speedKmh: avgSpeed,
+          durationHours,
+          durationMinutes: totalMinutes,
+          periodTitle: formatWeekInterval(w.start, w.end),
         };
       });
     }
@@ -169,14 +204,30 @@ export class WalkingRepo {
         'SELECT * FROM walking_records WHERE date LIKE ?;',
         [`${m.key}%`]
       );
-      const val = records.reduce(
-        (sum, r) => sum + (metric === 'steps' ? r.steps : r.distance_km),
-        0
+      const totalSteps = records.reduce((sum, r) => sum + r.steps, 0);
+      const totalDist = Number(records.reduce((sum, r) => sum + r.distance_km, 0).toFixed(2));
+      const avgSpeed = records.length > 0
+        ? Number((records.reduce((sum, r) => sum + r.speed_kmh, 0) / records.length).toFixed(1))
+        : 0;
+      const totalMinutes = Math.round(
+        records.reduce((sum, r) => {
+          const spd = r.speed_kmh > 0 ? r.speed_kmh : (avgSpeed > 0 ? avgSpeed : 4.8);
+          return sum + (r.distance_km > 0 ? (r.distance_km / spd) * 60 : 0);
+        }, 0)
       );
+      const durationHours = Number((totalMinutes / 60).toFixed(1));
+      const val = metric === 'steps' ? totalSteps : totalDist;
+
       return {
         label: m.label,
         value: metric === 'steps' ? Math.round(val) : Number(val.toFixed(1)),
         rawKey: m.key,
+        distanceKm: totalDist,
+        steps: totalSteps,
+        speedKmh: avgSpeed,
+        durationHours,
+        durationMinutes: totalMinutes,
+        periodTitle: formatMonthYear(m.key),
       };
     });
   }

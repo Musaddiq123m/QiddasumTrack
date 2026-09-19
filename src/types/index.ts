@@ -83,6 +83,12 @@ export interface ChartDataPoint {
   value: number;
   secondaryValue?: number;
   rawKey?: string; // e.g. YYYY-MM for drilldown
+  distanceKm?: number;
+  steps?: number;
+  speedKmh?: number;
+  durationHours?: number;
+  durationMinutes?: number;
+  periodTitle?: string;
 }
 
 export interface StackedBarGroup {

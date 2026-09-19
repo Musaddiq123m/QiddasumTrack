@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { Platform } from '../../utils/platform';
+import { padZero } from '../../utils/dateUtils';
 import { getDB } from '../database';
 import { WalkingRepo } from './walkingRepo';
 import { IncomeRepo } from './incomeRepo';
@@ -94,7 +95,11 @@ export class BackupRepo {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expenseTypesRows), 'Expense_Types');
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(subtypeRows), 'Subtypes');
 
-      const fileName = `Budget_Walking_Backup_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      const now = new Date();
+      const dd = padZero(now.getDate());
+      const mm = padZero(now.getMonth() + 1);
+      const yyyy = now.getFullYear();
+      const fileName = `Checkpoint_${dd}_${mm}_${yyyy}.xlsx`;
 
       if (Platform.OS === 'web') {
         XLSX.writeFile(wb, fileName);
@@ -102,14 +107,19 @@ export class BackupRepo {
       }
 
       // Native (Android / iOS)
-      const FileSystem = require('expo-file-system');
+      let FileSystem: any;
+      try {
+        FileSystem = require('expo-file-system/legacy');
+      } catch (e) {
+        FileSystem = require('expo-file-system');
+      }
       const Sharing = require('expo-sharing');
 
       const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
       const uri = `${FileSystem.documentDirectory}${fileName}`;
 
       await FileSystem.writeAsStringAsync(uri, wbout, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: FileSystem.EncodingType?.Base64 || 'base64',
       });
 
       if (await Sharing.isAvailableAsync()) {
@@ -176,12 +186,18 @@ export class BackupRepo {
                 continue;
               }
 
-              // Parse date (supports YYYY-MM-DD, ISO, or Strava's "May 12, 2024, 07:15:00")
+              // Parse date (supports YYYY-MM-DD, ISO, Strava's "May 12, 2024, 07:15:00", or Excel serial number)
               const rawDate = w.Date || w.date || w['Activity Date'] || w['activity_date'];
               let formattedDate = '';
               if (rawDate) {
                 if (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawDate.trim())) {
                   formattedDate = rawDate.trim();
+                } else if (typeof rawDate === 'number' && rawDate > 25569) {
+                  const d = new Date(Math.round((rawDate - 25569) * 86400 * 1000));
+                  const y = d.getUTCFullYear();
+                  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+                  const day = String(d.getUTCDate()).padStart(2, '0');
+                  formattedDate = `${y}-${m}-${day}`;
                 } else {
                   const d = new Date(rawDate);
                   if (!isNaN(d.getTime())) {

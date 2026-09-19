@@ -219,5 +219,32 @@ describe('Budget & Walking Tracker Core Logic', () => {
       const walksMay12 = WalkingRepo.getForDate('2026-05-12');
       assert.strictEqual(walksMay12.length, 0, 'Bike ride on May 12 must not be imported');
     });
+
+    it('formats duration correctly as X hrs Y minutes or hours/minutes only', () => {
+      const { formatDuration } = require('../src/utils/dateUtils');
+      assert.strictEqual(formatDuration(0), '0 hrs');
+      assert.strictEqual(formatDuration(45), '45 minutes');
+      assert.strictEqual(formatDuration(60), '1 hr');
+      assert.strictEqual(formatDuration(120), '2 hrs');
+      assert.strictEqual(formatDuration(75), '1 hr 15 minutes');
+      assert.strictEqual(formatDuration(150), '2 hrs 30 minutes');
+
+      // Round to hours mode for 12w and 12m
+      assert.strictEqual(formatDuration(0, true), '0 hrs');
+      assert.strictEqual(formatDuration(55, true), '1 hr');
+      assert.strictEqual(formatDuration(119, true), '2 hrs');
+      assert.strictEqual(formatDuration(530, true), '9 hrs');
+    });
+
+    it('calculates duration in walking chart data accurately', () => {
+      const today = getTodayString();
+      // 5 km at 5 km/h = 1 hour = 60 minutes
+      WalkingRepo.add(6500, 5.0, 5.0, today);
+      const data = WalkingRepo.getChartData('7d', 'steps');
+      const todayPoint = data.find((p) => p.rawKey === today);
+      assert.ok(todayPoint);
+      assert.strictEqual(todayPoint.durationMinutes, 60);
+      assert.strictEqual(todayPoint.durationHours, 1.0);
+    });
   });
 });

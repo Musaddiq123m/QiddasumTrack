@@ -36,7 +36,7 @@ export const ExpirationBanner: React.FC<ExpirationBannerProps> = ({
             scaleTo={0.98}
           >
             <View style={styles.iconContainer}>
-              <Clock size={15} color={THEME.text.secondary} />
+              <Clock size={16} color="#F59E0B" />
             </View>
 
             <View style={styles.textContainer}>
@@ -44,12 +44,12 @@ export const ExpirationBanner: React.FC<ExpirationBannerProps> = ({
                 <Text style={styles.bold}>{expense.name}</Text>
                 <Text style={styles.timeText}> • {timeText}</Text>
               </Text>
-              <Text style={styles.subtext}>Tap to renew period</Text>
+              <Text style={styles.subtext}>Action required • Tap to extend period</Text>
             </View>
 
             <View style={styles.renewBadge}>
               <Text style={styles.renewBadgeText}>Renew</Text>
-              <ChevronRight size={13} color={THEME.text.secondary} style={{ marginLeft: 2 }} />
+              <ChevronRight size={13} color="#090D16" style={{ marginLeft: 2 }} />
             </View>
           </AnimatedPressable>
         );
@@ -66,20 +66,29 @@ const styles = StyleSheet.create({
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.bg.card,
-    borderColor: THEME.bg.borderLight,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderColor: 'rgba(245, 158, 11, 0.45)',
+    borderLeftColor: '#F59E0B',
+    borderLeftWidth: 4,
     borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 9,
+    borderRadius: 12,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 6,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   iconContainer: {
     marginRight: 10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: THEME.bg.chip,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(245, 158, 11, 0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -90,33 +99,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   bold: {
-    fontWeight: '600',
-    color: THEME.text.primary,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   timeText: {
-    color: THEME.text.secondary,
-    fontSize: 12,
-    fontWeight: '400',
+    color: '#FBBF24',
+    fontSize: 12.5,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   subtext: {
-    color: THEME.text.tertiary,
+    color: 'rgba(253, 230, 138, 0.85)',
     fontSize: 11,
     marginTop: 1,
   },
   renewBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.bg.chip,
-    borderWidth: 1,
-    borderColor: THEME.bg.border,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
     marginLeft: 8,
   },
   renewBadgeText: {
-    color: THEME.text.secondary,
-    fontSize: 11,
-    fontWeight: '500',
+    color: '#090D16',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

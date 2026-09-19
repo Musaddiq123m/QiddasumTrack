@@ -139,3 +139,35 @@ export function formatCurrency(amount: number): string {
   const parts = rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return `Rs. ${parts}`;
 }
+
+export function formatWeekInterval(startStr: string, endStr: string): string {
+  const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const [y1, m1, d1] = startStr.split('-').map(Number);
+  const [y2, m2, d2] = endStr.split('-').map(Number);
+  if (m1 === m2 && y1 === y2) {
+    return `${shortMonths[m1 - 1]} ${d1} - ${shortMonths[m2 - 1]} ${d2}, ${y2}`;
+  }
+  if (y1 === y2) {
+    return `${shortMonths[m1 - 1]} ${d1} - ${shortMonths[m2 - 1]} ${d2}, ${y2}`;
+  }
+  return `${shortMonths[m1 - 1]} ${d1}, ${y1} - ${shortMonths[m2 - 1]} ${d2}, ${y2}`;
+}
+
+export function formatDuration(totalMinutes: number, roundToHours: boolean = false): string {
+  if (!totalMinutes || totalMinutes <= 0) return '0 hrs';
+  if (roundToHours) {
+    const hrs = Math.round(totalMinutes / 60);
+    return `${hrs} ${hrs === 1 ? 'hr' : 'hrs'}`;
+  }
+  const hrs = Math.floor(totalMinutes / 60);
+  const mins = Math.round(totalMinutes % 60);
+
+  if (hrs > 0 && mins > 0) {
+    return `${hrs} ${hrs === 1 ? 'hr' : 'hrs'} ${mins} minutes`;
+  }
+  if (hrs > 0 && mins === 0) {
+    return `${hrs} ${hrs === 1 ? 'hr' : 'hrs'}`;
+  }
+  return `${mins} minutes`;
+}
+

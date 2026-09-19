@@ -15,6 +15,7 @@ import {
   Calendar,
   Layers,
   Repeat,
+  RotateCcw,
 } from 'lucide-react-native';
 import {
   DateGroupedExpenses,
@@ -133,14 +134,28 @@ export const BudgetScreen: React.FC = () => {
     setSelectedDate(next);
   };
 
+  const [isDrilledFromYearly, setIsDrilledFromYearly] = useState(false);
+
   const handleResetToday = () => {
     setSelectedDate(new Date());
+    setIsDrilledFromYearly(false);
   };
 
   const handleYearlyMonthPress = (monthKey: string) => {
     const [y, m] = monthKey.split('-').map(Number);
     setSelectedDate(new Date(y, m - 1, 1));
+    setIsDrilledFromYearly(true);
     setActiveTab('monthly');
+  };
+
+  const handleTabPress = (tab: BudgetSubView) => {
+    // If user was drilled into a previous month, or switching between tabs (e.g. to yearly or timeline),
+    // reset to current month so the view isn't stuck on the past month
+    if (tab !== 'monthly' || isDrilledFromYearly) {
+      setSelectedDate(new Date());
+      setIsDrilledFromYearly(false);
+    }
+    setActiveTab(tab);
   };
 
   const toggleRecurringSection = (dateStr: string) => {
@@ -235,7 +250,7 @@ export const BudgetScreen: React.FC = () => {
       <View style={styles.tabBar}>
         <AnimatedPressable
           style={[styles.tabBtn, activeTab === 'daily' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('daily')}
+          onPress={() => handleTabPress('daily')}
           scaleTo={0.95}
         >
           <Calendar size={14} color={activeTab === 'daily' ? THEME.text.primary : THEME.text.tertiary} style={{ marginRight: 6 }} />
@@ -244,7 +259,7 @@ export const BudgetScreen: React.FC = () => {
 
         <AnimatedPressable
           style={[styles.tabBtn, activeTab === 'monthly' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('monthly')}
+          onPress={() => handleTabPress('monthly')}
           scaleTo={0.95}
         >
           <PieIcon size={14} color={activeTab === 'monthly' ? THEME.text.primary : THEME.text.tertiary} style={{ marginRight: 6 }} />
@@ -253,13 +268,30 @@ export const BudgetScreen: React.FC = () => {
 
         <AnimatedPressable
           style={[styles.tabBtn, activeTab === 'yearly' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('yearly')}
+          onPress={() => handleTabPress('yearly')}
           scaleTo={0.95}
         >
           <Layers size={14} color={activeTab === 'yearly' ? THEME.text.primary : THEME.text.tertiary} style={{ marginRight: 6 }} />
           <Text style={[styles.tabText, activeTab === 'yearly' && styles.tabTextActive]}>Yearly</Text>
         </AnimatedPressable>
       </View>
+
+      {/* Historical Drilled Month Banner */}
+      {isDrilledFromYearly && activeTab === 'monthly' && (
+        <AnimatedPressable
+          style={styles.drillBanner}
+          onPress={() => {
+            setSelectedDate(new Date());
+            setIsDrilledFromYearly(false);
+          }}
+          scaleTo={0.98}
+        >
+          <RotateCcw size={13} color={THEME.accent.blue} style={{ marginRight: 6 }} />
+          <Text style={styles.drillBannerText}>
+            Viewing {selectedMonthKey} • Tap to reset to current month
+          </Text>
+        </AnimatedPressable>
+      )}
 
       {/* Tab 1: Daily Timeline */}
       {activeTab === 'daily' && (
@@ -726,5 +758,23 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.bg.cardHover,
     borderWidth: 1,
     borderColor: THEME.bg.border,
+  },
+  drillBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  drillBannerText: {
+    color: THEME.accent.blue,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

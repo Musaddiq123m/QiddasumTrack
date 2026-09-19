@@ -154,7 +154,6 @@ export const SettingsScreen: React.FC = () => {
         input.click();
       } else {
         const DocumentPicker = require('expo-document-picker');
-        const FileSystem = require('expo-file-system');
 
         const docRes = await DocumentPicker.getDocumentAsync({
           type: [
@@ -170,9 +169,38 @@ export const SettingsScreen: React.FC = () => {
         if (docRes.canceled || !docRes.assets || docRes.assets.length === 0) return;
 
         const asset = docRes.assets[0];
-        const base64 = await FileSystem.readAsStringAsync(asset.uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
+
+        // Safe reading for Expo SDK 52+ on Android / iOS
+        let base64 = '';
+        try {
+          const FileSystemLegacy = require('expo-file-system/legacy');
+          if (FileSystemLegacy && FileSystemLegacy.readAsStringAsync) {
+            base64 = await FileSystemLegacy.readAsStringAsync(asset.uri, {
+              encoding: FileSystemLegacy.EncodingType?.Base64 || 'base64',
+            });
+          }
+        } catch (e1) {
+          // fallback
+        }
+
+        if (!base64) {
+          try {
+            const { File } = require('expo-file-system');
+            if (File) {
+              const fileObj = new File(asset.uri);
+              base64 = await fileObj.base64();
+            }
+          } catch (e2) {
+            // fallback
+          }
+        }
+
+        if (!base64) {
+          const FileSystem = require('expo-file-system');
+          base64 = await FileSystem.readAsStringAsync(asset.uri, {
+            encoding: FileSystem.EncodingType?.Base64 || 'base64',
+          });
+        }
 
         const wb = XLSX.read(base64, { type: 'base64' });
         const result = await BackupRepo.importFromWorkbook(wb);
@@ -369,7 +397,7 @@ export const SettingsScreen: React.FC = () => {
           </View>
           <View style={styles.infoRow}>
             <Smartphone size={16} color={THEME.text.secondary} style={{ marginRight: 8 }} />
-            <Text style={styles.infoText}>Optimized for Redmi Note 12</Text>
+            <Text style={styles.infoText}>Optimized for Android & Web</Text>
           </View>
         </View>
 

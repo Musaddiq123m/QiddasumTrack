@@ -1,7 +1,7 @@
 {
   "name": "budget-walking-tracker",
   "version": "1.0.0",
-  "description": "Local-first Budget and Walking Tracker for Android (Redmi Note 12)",
+  "description": "Local-first Budget and Walking Tracker",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
