@@ -50,6 +50,7 @@ export class BackupRepo {
         Type: i.type_name,
         Type_ID: i.type_id,
         Amount: i.amount,
+        Notes: i.notes || '',
         Created_At: new Date(i.created_at).toISOString(),
       }));
 
@@ -62,6 +63,7 @@ export class BackupRepo {
         Subtype: e.subtype_name || '',
         Subtype_ID: e.expense_subtype_id || '',
         Amount: e.amount,
+        Notes: e.notes || '',
         Created_At: new Date(e.created_at).toISOString(),
       }));
 
@@ -294,7 +296,8 @@ export class BackupRepo {
                 const typeName = (i.Type || 'Other').toLowerCase();
                 const typeId = incTypesMap[typeName] || IncomeRepo.addType(i.Type || 'Other').id;
                 incTypesMap[typeName] = typeId;
-                IncomeRepo.add(typeId, Number(i.Amount), String(i.Date));
+                const noteVal = i.Notes ?? i.notes ?? null;
+                IncomeRepo.add(typeId, Number(i.Amount), String(i.Date), noteVal ? String(noteVal) : null);
                 importedCount++;
               }
             }
@@ -308,7 +311,14 @@ export class BackupRepo {
                 const typeName = (e.Type || 'Others').toLowerCase();
                 const typeId = expTypesMap[typeName] || ExpenseRepo.addType(e.Type || 'Others').id;
                 expTypesMap[typeName] = typeId;
-                ExpenseRepo.add(typeId, e.Subtype ? String(e.Subtype) : null, Number(e.Amount), String(e.Date));
+                const noteVal = e.Notes ?? e.notes ?? null;
+                ExpenseRepo.add(
+                  typeId,
+                  e.Subtype ? String(e.Subtype) : null,
+                  Number(e.Amount),
+                  String(e.Date),
+                  noteVal ? String(noteVal) : null
+                );
                 importedCount++;
               }
             }

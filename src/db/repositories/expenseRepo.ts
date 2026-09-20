@@ -115,25 +115,25 @@ export class ExpenseRepo {
     );
   }
 
-  static add(expenseTypeId: string, subtypeName: string | null | undefined, amount: number, date: string): ExpenseRecord {
+  static add(expenseTypeId: string, subtypeName: string | null | undefined, amount: number, date: string, notes?: string | null): ExpenseRecord {
     const subtypeId = this.ensureSubtype(expenseTypeId, subtypeName);
     const db = getDB();
     const id = generateUUID();
     const now = Date.now();
     db.run(
-      'INSERT INTO expense_records (id, expense_type_id, expense_subtype_id, date, amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?);',
-      [id, expenseTypeId, subtypeId, date, amount, now, now]
+      'INSERT INTO expense_records (id, expense_type_id, expense_subtype_id, date, amount, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
+      [id, expenseTypeId, subtypeId, date, amount, notes || null, now, now]
     );
     return this.getById(id)!;
   }
 
-  static update(id: string, expenseTypeId: string, subtypeName: string | null | undefined, amount: number, date: string): boolean {
+  static update(id: string, expenseTypeId: string, subtypeName: string | null | undefined, amount: number, date: string, notes?: string | null): boolean {
     const subtypeId = this.ensureSubtype(expenseTypeId, subtypeName);
     const db = getDB();
     const now = Date.now();
     const result = db.run(
-      'UPDATE expense_records SET expense_type_id = ?, expense_subtype_id = ?, date = ?, amount = ?, updated_at = ? WHERE id = ?;',
-      [expenseTypeId, subtypeId, date, amount, now, id]
+      'UPDATE expense_records SET expense_type_id = ?, expense_subtype_id = ?, date = ?, amount = ?, notes = ?, updated_at = ? WHERE id = ?;',
+      [expenseTypeId, subtypeId, date, amount, notes || null, now, id]
     );
     return result.changes > 0;
   }

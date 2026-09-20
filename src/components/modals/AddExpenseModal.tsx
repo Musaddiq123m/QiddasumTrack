@@ -21,7 +21,7 @@ import { DatePickerField } from '../DatePickerField';
 interface AddExpenseModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (typeId: string, subtypeName: string | null, amount: number, date: string, id?: string) => void;
+  onSave: (typeId: string, subtypeName: string | null, amount: number, date: string, id?: string, notes?: string | null) => void;
   onDelete?: (id: string) => void;
   expenseTypes: ExpenseType[];
   onAddNewType: (name: string) => ExpenseType;
@@ -47,6 +47,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
 
   const [date, setDate] = useState<string>(defaultDate || getTodayString());
   const [amount, setAmount] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   // New Category Type creation
@@ -70,6 +71,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       setIsAddingNewSubtype(false);
       setDate(initialRecord.date);
       setAmount(Math.round(initialRecord.amount).toString());
+      setNotes(initialRecord.notes || '');
     } else {
       const defaultId = expenseTypes.length > 0 ? expenseTypes[0].id : '';
       setSelectedTypeId(defaultId);
@@ -78,6 +80,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       setIsAddingNewSubtype(false);
       setDate(defaultDate || getTodayString());
       setAmount('');
+      setNotes('');
     }
     setIsCreatingType(false);
     setNewTypeName('');
@@ -111,7 +114,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       ? customSubtype.trim() || null
       : selectedSubtype.trim() || null;
 
-    onSave(selectedTypeId, finalSubtype, cleanAmount, date, initialRecord?.id);
+    onSave(selectedTypeId, finalSubtype, cleanAmount, date, initialRecord?.id, notes.trim() || null);
     onClose();
   };
 
@@ -131,7 +134,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlay}
       >
         <View style={styles.sheet}>
@@ -290,6 +293,21 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
               placeholder="450"
               isCurrency
             />
+
+            {/* Notes (Optional) */}
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>Notes (Optional)</Text>
+              <TextInput
+                style={styles.notesInput}
+                placeholder="e.g. Shawarma breakdown, specific details..."
+                placeholderTextColor="#475569"
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                numberOfLines={2}
+                textAlignVertical="top"
+              />
+            </View>
 
             {/* Actions */}
             <View style={styles.actions}>
@@ -522,5 +540,16 @@ const styles = StyleSheet.create({
     color: THEME.accent.expense,
     fontSize: 14,
     fontWeight: '600',
+  },
+  notesInput: {
+    backgroundColor: THEME.bg.input,
+    borderWidth: 1,
+    borderColor: THEME.bg.borderLight,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 56,
+    color: THEME.text.primary,
+    fontSize: 13.5,
   },
 });

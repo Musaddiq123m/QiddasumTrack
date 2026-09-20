@@ -29,6 +29,12 @@ class NativeSQLiteDatabase implements IDatabase {
   private init() {
     this.db.execSync('PRAGMA foreign_keys = ON;');
     this.db.execSync(CREATE_TABLES_SQL);
+    try {
+      this.db.execSync('ALTER TABLE expense_records ADD COLUMN notes TEXT;');
+    } catch (_) {}
+    try {
+      this.db.execSync('ALTER TABLE income_records ADD COLUMN notes TEXT;');
+    } catch (_) {}
     this.seedDefaults();
   }
 
@@ -189,7 +195,7 @@ export class MemoryDatabase implements IDatabase {
     if (cleanSql.includes('FROM income_records')) {
       let list = this.tables.income_records.map((ir) => {
         const it = this.tables.income_types.find((t) => t.id === ir.type_id);
-        return { ...ir, type_name: it?.name || 'Unknown' };
+        return { ...ir, notes: ir.notes || null, type_name: it?.name || 'Unknown' };
       });
       if (cleanSql.includes('WHERE ir.id = ?') || cleanSql.includes('WHERE id = ?')) {
         list = list.filter((r) => r.id === params[0]);
@@ -216,6 +222,7 @@ export class MemoryDatabase implements IDatabase {
         const es = this.tables.expense_subtypes.find((s) => s.id === er.expense_subtype_id);
         return {
           ...er,
+          notes: er.notes || null,
           type_name: et?.name || 'Unknown',
           subtype_name: es?.name || null,
         };
@@ -317,17 +324,38 @@ export class MemoryDatabase implements IDatabase {
     }
     // INSERT INTO income_records
     else if (cleanSql.includes('INTO income_records')) {
-      const [id, type_id, date, amount, created_at, updated_at] = params;
-      this.tables.income_records.push({ id, type_id, date, amount, created_at, updated_at });
+      if (params.length >= 7) {
+        const [id, type_id, date, amount, notes, created_at, updated_at] = params;
+        this.tables.income_records.push({ id, type_id, date, amount, notes: notes || null, created_at, updated_at });
+      } else {
+        const [id, type_id, date, amount, created_at, updated_at] = params;
+        this.tables.income_records.push({ id, type_id, date, amount, notes: null, created_at, updated_at });
+      }
       changes = 1;
     }
     // UPDATE income_records
     else if (cleanSql.includes('UPDATE income_records')) {
-      const [type_id, date, amount, updated_at, id] = params;
-      const idx = this.tables.income_records.findIndex((r) => r.id === id);
-      if (idx !== -1) {
-        this.tables.income_records[idx] = { ...this.tables.income_records[idx], type_id, date, amount, updated_at };
-        changes = 1;
+      if (params.length >= 6) {
+        const [type_id, date, amount, notes, updated_at, id] = params;
+        const idx = this.tables.income_records.findIndex((r) => r.id === id);
+        if (idx !== -1) {
+          this.tables.income_records[idx] = {
+            ...this.tables.income_records[idx],
+            type_id,
+            date,
+            amount,
+            notes: notes || null,
+            updated_at,
+          };
+          changes = 1;
+        }
+      } else {
+        const [type_id, date, amount, updated_at, id] = params;
+        const idx = this.tables.income_records.findIndex((r) => r.id === id);
+        if (idx !== -1) {
+          this.tables.income_records[idx] = { ...this.tables.income_records[idx], type_id, date, amount, updated_at };
+          changes = 1;
+        }
       }
     }
     // DELETE FROM income_records
@@ -339,32 +367,64 @@ export class MemoryDatabase implements IDatabase {
     }
     // INSERT INTO expense_records
     else if (cleanSql.includes('INTO expense_records')) {
-      const [id, expense_type_id, expense_subtype_id, date, amount, created_at, updated_at] = params;
-      this.tables.expense_records.push({
-        id,
-        expense_type_id,
-        expense_subtype_id: expense_subtype_id || null,
-        date,
-        amount,
-        created_at,
-        updated_at,
-      });
-      changes = 1;
-    }
-    // UPDATE expense_records
-    else if (cleanSql.includes('UPDATE expense_records')) {
-      const [expense_type_id, expense_subtype_id, date, amount, updated_at, id] = params;
-      const idx = this.tables.expense_records.findIndex((r) => r.id === id);
-      if (idx !== -1) {
-        this.tables.expense_records[idx] = {
-          ...this.tables.expense_records[idx],
+      if (params.length >= 8) {
+        const [id, expense_type_id, expense_subtype_id, date, amount, notes, created_at, updated_at] = params;
+        this.tables.expense_records.push({
+          id,
           expense_type_id,
           expense_subtype_id: expense_subtype_id || null,
           date,
           amount,
+          notes: notes || null,
+          created_at,
           updated_at,
-        };
-        changes = 1;
+        });
+      } else {
+        const [id, expense_type_id, expense_subtype_id, date, amount, created_at, updated_at] = params;
+        this.tables.expense_records.push({
+          id,
+          expense_type_id,
+          expense_subtype_id: expense_subtype_id || null,
+          date,
+          amount,
+          notes: null,
+          created_at,
+          updated_at,
+        });
+      }
+      changes = 1;
+    }
+    // UPDATE expense_records
+    else if (cleanSql.includes('UPDATE expense_records')) {
+      if (params.length >= 7) {
+        const [expense_type_id, expense_subtype_id, date, amount, notes, updated_at, id] = params;
+        const idx = this.tables.expense_records.findIndex((r) => r.id === id);
+        if (idx !== -1) {
+          this.tables.expense_records[idx] = {
+            ...this.tables.expense_records[idx],
+            expense_type_id,
+            expense_subtype_id: expense_subtype_id || null,
+            date,
+            amount,
+            notes: notes || null,
+            updated_at,
+          };
+          changes = 1;
+        }
+      } else {
+        const [expense_type_id, expense_subtype_id, date, amount, updated_at, id] = params;
+        const idx = this.tables.expense_records.findIndex((r) => r.id === id);
+        if (idx !== -1) {
+          this.tables.expense_records[idx] = {
+            ...this.tables.expense_records[idx],
+            expense_type_id,
+            expense_subtype_id: expense_subtype_id || null,
+            date,
+            amount,
+            updated_at,
+          };
+          changes = 1;
+        }
       }
     }
     // DELETE FROM expense_records

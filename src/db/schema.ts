@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS income_records (
   type_id TEXT NOT NULL,
   date TEXT NOT NULL,
   amount REAL NOT NULL,
+  notes TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   FOREIGN KEY(type_id) REFERENCES income_types(id) ON DELETE RESTRICT
@@ -58,6 +59,7 @@ CREATE TABLE IF NOT EXISTS expense_records (
   expense_subtype_id TEXT,
   date TEXT NOT NULL,
   amount REAL NOT NULL,
+  notes TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   FOREIGN KEY(expense_type_id) REFERENCES expense_types(id) ON DELETE RESTRICT,

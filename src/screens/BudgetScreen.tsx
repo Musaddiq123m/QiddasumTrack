@@ -209,11 +209,11 @@ export const BudgetScreen: React.FC = () => {
     setIsDrilldownOpen(true);
   };
 
-  const handleSaveExpense = (typeId: string, subtypeName: string | null, amount: number, date: string, id?: string) => {
+  const handleSaveExpense = (typeId: string, subtypeName: string | null, amount: number, date: string, id?: string, notes?: string | null) => {
     if (id) {
-      ExpenseRepo.update(id, typeId, subtypeName, amount, date);
+      ExpenseRepo.update(id, typeId, subtypeName, amount, date, notes);
     } else {
-      ExpenseRepo.add(typeId, subtypeName, amount, date);
+      ExpenseRepo.add(typeId, subtypeName, amount, date, notes);
     }
     loadData();
   };
@@ -223,11 +223,11 @@ export const BudgetScreen: React.FC = () => {
     loadData();
   };
 
-  const handleSaveIncome = (typeId: string, amount: number, date: string, id?: string) => {
+  const handleSaveIncome = (typeId: string, amount: number, date: string, id?: string, notes?: string | null) => {
     if (id) {
-      IncomeRepo.update(id, typeId, amount, date);
+      IncomeRepo.update(id, typeId, amount, date, notes);
     } else {
-      IncomeRepo.add(typeId, amount, date);
+      IncomeRepo.add(typeId, amount, date, notes);
     }
     loadData();
   };

@@ -68,23 +68,23 @@ export class IncomeRepo {
     );
   }
 
-  static add(typeId: string, amount: number, date: string): IncomeRecord {
+  static add(typeId: string, amount: number, date: string, notes?: string | null): IncomeRecord {
     const db = getDB();
     const id = generateUUID();
     const now = Date.now();
     db.run(
-      'INSERT INTO income_records (id, type_id, date, amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?);',
-      [id, typeId, date, amount, now, now]
+      'INSERT INTO income_records (id, type_id, date, amount, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?);',
+      [id, typeId, date, amount, notes || null, now, now]
     );
     return this.getById(id)!;
   }
 
-  static update(id: string, typeId: string, amount: number, date: string): boolean {
+  static update(id: string, typeId: string, amount: number, date: string, notes?: string | null): boolean {
     const db = getDB();
     const now = Date.now();
     const result = db.run(
-      'UPDATE income_records SET type_id = ?, date = ?, amount = ?, updated_at = ? WHERE id = ?;',
-      [typeId, date, amount, now, id]
+      'UPDATE income_records SET type_id = ?, date = ?, amount = ?, notes = ?, updated_at = ? WHERE id = ?;',
+      [typeId, date, amount, notes || null, now, id]
     );
     return result.changes > 0;
   }

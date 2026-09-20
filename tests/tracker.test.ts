@@ -280,5 +280,108 @@ describe('Budget & Walking Tracker Core Logic', () => {
       assert.strictEqual(visible[0].key, '2026-09');
       assert.strictEqual(visible[1].key, '2026-08');
     });
+
+    it('persists notes for expenses and income and round-trips via BackupRepo', async () => {
+      const expTypes = ExpenseRepo.getTypes();
+      const food = expTypes.find((t) => t.name === 'Food') || expTypes[0];
+      const expense = ExpenseRepo.add(food.id, 'Shawarma', 450, '2026-09-18', '2 shawarmas + garlic sauce');
+      assert.strictEqual(expense.notes, '2 shawarmas + garlic sauce');
+
+      // Update notes
+      ExpenseRepo.update(expense.id, food.id, 'Shawarma', 500, '2026-09-18', 'updated note: 2 shawarmas + drinks');
+      const updatedExpense = ExpenseRepo.getById(expense.id);
+      assert.strictEqual(updatedExpense?.notes, 'updated note: 2 shawarmas + drinks');
+      assert.strictEqual(updatedExpense?.amount, 500);
+
+      // Income with notes
+      const incTypes = IncomeRepo.getTypes();
+      const salary = incTypes.find((t) => t.name === 'Salary') || incTypes[0];
+      const income = IncomeRepo.add(salary.id, 99550, '2026-09-02', 'Monthly base salary after tax');
+      assert.strictEqual(income.notes, 'Monthly base salary after tax');
+
+      IncomeRepo.update(income.id, salary.id, 100000, '2026-09-02', 'Final salary credited');
+      const updatedIncome = IncomeRepo.getById(income.id);
+      assert.strictEqual(updatedIncome?.notes, 'Final salary credited');
+
+      // Backup export/import round-trip
+      const XLSX = await import('xlsx');
+      const { BackupRepo } = await import('../src/db/repositories/backupRepo');
+
+      // Create a mock workbook with notes
+      const expenseSheetData = [
+        {
+          Date: '2026-09-10',
+          Type: 'Food',
+          Subtype: 'Chai',
+          Amount: 80,
+          Notes: 'Evening tea with snack',
+        },
+      ];
+      const incomeSheetData = [
+        {
+          Date: '2026-09-01',
+          Type: 'Salary',
+          Amount: 99550,
+          Notes: 'September Paycheck',
+        },
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expenseSheetData), 'Expenses');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(incomeSheetData), 'Income');
+
+      const importRes = await BackupRepo.importFromWorkbook(wb);
+      assert.strictEqual(importRes.success, true);
+
+      const importedExpenses = ExpenseRepo.getAll();
+      const chaiRecord = importedExpenses.find((e) => e.subtype_name === 'Chai' && e.date === '2026-09-10');
+      assert.ok(chaiRecord, 'Chai record should be imported');
+      assert.strictEqual(chaiRecord.notes, 'Evening tea with snack');
+
+      const importedIncomes = IncomeRepo.getAll();
+      const paycheckRecord = importedIncomes.find((i) => i.date === '2026-09-01');
+      assert.ok(paycheckRecord, 'Paycheck should be imported');
+      assert.strictEqual(paycheckRecord.notes, 'September Paycheck');
+    });
+
+    it('successfully imports and verifies imported_previous_expenses.xlsx control totals', async () => {
+      const XLSX = await import('xlsx');
+      const fs = await import('fs');
+      const path = await import('path');
+      const filePath = path.join(__dirname, '..', 'imported_previous_expenses.xlsx');
+      const fileBuffer = fs.readFileSync(filePath);
+      const wb = XLSX.read(fileBuffer, { type: 'buffer' });
+
+      const { BackupRepo } = await import('../src/db/repositories/backupRepo');
+      const result = await BackupRepo.importFromWorkbook(wb);
+      assert.strictEqual(result.success, true);
+      assert.strictEqual(result.count, 118, 'Expected 112 expenses + 6 incomes = 118 records');
+
+      // Verify September 2026 expense and income totals
+      const expensesSep = ExpenseRepo.getForMonth('2026-09');
+      const totalExpense = expensesSep.reduce((sum, e) => sum + e.amount, 0);
+      assert.strictEqual(totalExpense, 95754, 'Total expenses must match exactly 95,754 PKR');
+
+      const incomesSep = IncomeRepo.getForMonth('2026-09');
+      const totalIncome = incomesSep.reduce((sum, i) => sum + i.amount, 0);
+      assert.strictEqual(totalIncome, 214550, 'Total income must match exactly 214,550 PKR');
+
+      // Verify category rules
+      // 1. Chai has category Food and subcategory Chai
+      const chaiList = expensesSep.filter((e) => e.subtype_name === 'Chai');
+      assert.ok(chaiList.length > 0);
+      assert.ok(chaiList.every((e) => e.type_name === 'Food'));
+
+      // 2. Chicken Parhata is in Breakfast
+      const parhataList = expensesSep.filter((e) => e.subtype_name === 'Chicken Parhata');
+      assert.ok(parhataList.length > 0);
+      assert.ok(parhataList.every((e) => e.type_name === 'Breakfast'));
+
+      // 3. Outings with Hassan
+      const outingList = expensesSep.filter((e) => e.type_name === 'Outing');
+      assert.ok(outingList.length >= 2);
+      assert.ok(outingList.some((e) => e.subtype_name === 'Anatummy With Hassan' && e.amount === 2909));
+      assert.ok(outingList.some((e) => e.subtype_name === 'Meeting Hassan' && e.amount === 871));
+    });
   });
 });

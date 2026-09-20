@@ -20,6 +20,7 @@ export interface IncomeRecord {
   type_name?: string;
   date: string; // YYYY-MM-DD
   amount: number;
+  notes?: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -46,6 +47,7 @@ export interface ExpenseRecord {
   subtype_name?: string | null;
   date: string; // YYYY-MM-DD
   amount: number;
+  notes?: string | null;
   created_at: number;
   updated_at: number;
 }
