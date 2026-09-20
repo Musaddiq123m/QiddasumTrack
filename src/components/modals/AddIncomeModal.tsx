@@ -6,6 +6,8 @@ import {
   Modal,
   ScrollView,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { X, Calendar, Check, Plus, Trash2 } from 'lucide-react-native';
 import { IncomeRecord, IncomeType } from '../../types';
@@ -96,7 +98,10 @@ export const AddIncomeModal: React.FC<AddIncomeModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.overlay}
+      >
         <View style={styles.sheet}>
           {/* Header */}
           <View style={styles.header}>
@@ -106,12 +111,23 @@ export const AddIncomeModal: React.FC<AddIncomeModalProps> = ({
             </AnimatedPressable>
           </View>
 
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.body}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {error && (
               <View style={styles.errorBanner}>
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
+
+            {/* Date Input */}
+            <DatePickerField
+              label="Date"
+              value={date}
+              onChange={setDate}
+            />
 
             {/* Income Type Selector + Inline Creation */}
             <View style={styles.fieldContainer}>
@@ -178,13 +194,6 @@ export const AddIncomeModal: React.FC<AddIncomeModalProps> = ({
               isCurrency
             />
 
-            {/* Date Input */}
-            <DatePickerField
-              label="Date"
-              value={date}
-              onChange={setDate}
-            />
-
             {/* Actions */}
             <View style={styles.actions}>
               <AnimatedPressable style={styles.saveBtn} onPress={handleSave} scaleTo={0.97}>
@@ -203,7 +212,7 @@ export const AddIncomeModal: React.FC<AddIncomeModalProps> = ({
             </View>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

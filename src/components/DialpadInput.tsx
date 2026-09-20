@@ -60,7 +60,6 @@ export const DialpadInput: React.FC<DialpadInputProps> = ({
           onChangeText={handleTextChange}
           placeholder={placeholder}
           placeholderTextColor="#475569"
-          selectTextOnFocus
           autoFocus={false}
         />
 

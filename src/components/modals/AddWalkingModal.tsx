@@ -6,6 +6,8 @@ import {
   Modal,
   ScrollView,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { X, Calendar, Check, Trash2 } from 'lucide-react-native';
 import { WalkingRecord } from '../../types';
@@ -88,7 +90,10 @@ export const AddWalkingModal: React.FC<AddWalkingModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.overlay}
+      >
         <View style={styles.sheet}>
           {/* Header */}
           <View style={styles.header}>
@@ -100,7 +105,11 @@ export const AddWalkingModal: React.FC<AddWalkingModalProps> = ({
             </AnimatedPressable>
           </View>
 
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.body}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {error && (
               <View style={styles.errorBanner}>
                 <Text style={styles.errorText}>{error}</Text>
@@ -159,7 +168,7 @@ export const AddWalkingModal: React.FC<AddWalkingModalProps> = ({
             </View>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

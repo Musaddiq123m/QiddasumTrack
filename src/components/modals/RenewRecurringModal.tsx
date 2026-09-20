@@ -6,6 +6,8 @@ import {
   Modal,
   ScrollView,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { X, Calendar, Check, Clock } from 'lucide-react-native';
 import { RecurringExpense } from '../../types';
@@ -69,7 +71,10 @@ export const RenewRecurringModal: React.FC<RenewRecurringModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={styles.sheet}>
           <View style={styles.header}>
             <View style={styles.titleRow}>
@@ -81,7 +86,11 @@ export const RenewRecurringModal: React.FC<RenewRecurringModalProps> = ({
             </AnimatedPressable>
           </View>
 
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.body}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {error && (
               <View style={styles.errorBanner}>
                 <Text style={styles.errorText}>{error}</Text>
@@ -147,7 +156,7 @@ export const RenewRecurringModal: React.FC<RenewRecurringModalProps> = ({
             </View>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
