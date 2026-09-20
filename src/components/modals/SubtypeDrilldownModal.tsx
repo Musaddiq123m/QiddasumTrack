@@ -24,7 +24,13 @@ export const SubtypeDrilldownModal: React.FC<SubtypeDrilldownModalProps> = ({
   total,
 }) => {
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
       <View style={styles.overlay}>
         <View style={styles.sheet}>
           <View style={styles.header}>

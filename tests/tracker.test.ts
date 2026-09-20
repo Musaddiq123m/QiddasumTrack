@@ -246,5 +246,39 @@ describe('Budget & Walking Tracker Core Logic', () => {
       assert.strictEqual(todayPoint.durationMinutes, 60);
       assert.strictEqual(todayPoint.durationHours, 1.0);
     });
+
+    it('formats currency and net balance properly for positive and negative amounts', () => {
+      const { formatCurrency, formatBalance } = require('../src/utils/dateUtils');
+      assert.strictEqual(formatCurrency(0), 'Rs. 0');
+      assert.strictEqual(formatCurrency(25000), 'Rs. 25,000');
+      assert.strictEqual(formatCurrency(-8500), '-Rs. 8,500');
+
+      assert.strictEqual(formatBalance(0), 'Rs. 0');
+      assert.strictEqual(formatBalance(15000), '+Rs. 15,000');
+      assert.strictEqual(formatBalance(-4200), '-Rs. 4,200');
+    });
+
+    it('reverses yearly breakdown and hides trailing months with 0-0-0', () => {
+      const mockMonths = [
+        { key: '2025-10', total: 0 },
+        { key: '2025-11', total: 0 },
+        { key: '2025-12', total: 0 },
+        { key: '2026-01', total: 0 },
+        { key: '2026-08', total: 40000 },
+        { key: '2026-09', total: 50000 },
+      ];
+
+      const reversed = [...mockMonths].reverse();
+      assert.strictEqual(reversed[0].key, '2026-09', 'Current month must be first');
+
+      const lastActiveIdx = reversed.reduce(
+        (lastIdx, row, idx) => (row.total !== 0 ? idx : lastIdx),
+        0
+      );
+      const visible = reversed.slice(0, lastActiveIdx + 1);
+      assert.strictEqual(visible.length, 2, 'Only active months (Sep and Aug) should be visible');
+      assert.strictEqual(visible[0].key, '2026-09');
+      assert.strictEqual(visible[1].key, '2026-08');
+    });
   });
 });

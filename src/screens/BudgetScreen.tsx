@@ -16,6 +16,7 @@ import {
   Layers,
   Repeat,
   RotateCcw,
+  Scale,
 } from 'lucide-react-native';
 import {
   DateGroupedExpenses,
@@ -42,7 +43,7 @@ import { AddIncomeModal } from '../components/modals/AddIncomeModal';
 import { AddRecurringModal } from '../components/modals/AddRecurringModal';
 import { SubtypeDrilldownModal } from '../components/modals/SubtypeDrilldownModal';
 import { RenewRecurringModal } from '../components/modals/RenewRecurringModal';
-import { formatCurrency, formatMonthYear, getMonthKey, getTodayString } from '../utils/dateUtils';
+import { formatCurrency, formatBalance, formatMonthYear, getMonthKey, getTodayString } from '../utils/dateUtils';
 import { THEME } from '../theme/colors';
 import { AnimatedPressable, FadeInView } from '../components/AnimatedComponents';
 
@@ -94,6 +95,41 @@ export const BudgetScreen: React.FC = () => {
     items: [],
     total: 0,
   });
+
+  // Computed monthly figures
+  const monthlyIncome = monthlyIncomePie.total;
+  const monthlyExpense = monthlyExpenseRanking.total;
+  const monthlyBalance = monthlyIncome - monthlyExpense;
+
+  // Computed yearly figures (12 Months)
+  const yearlyIncomeTotal = yearlyIncomeStacked.groups.reduce((sum, g) => sum + g.total, 0);
+  const yearlyExpenseTotal = yearlyExpenseLine.reduce((sum, pt) => sum + (pt.value || 0), 0);
+  const yearlyBalance = yearlyIncomeTotal - yearlyExpenseTotal;
+
+  // Monthly breakdown for Yearly tab (reverse chronological order: current month first)
+  const yearlyMonthBreakdown = [...yearlyIncomeStacked.groups]
+    .reverse()
+    .map((g) => {
+      const income = g.total;
+      const expensePt = yearlyExpenseLine.find((pt) => pt.rawKey === g.key);
+      const expense = expensePt ? expensePt.value : 0;
+      const balance = income - expense;
+      const [y] = g.key.split('-');
+      return {
+        key: g.key,
+        label: `${g.label} '${y.slice(2)}`,
+        income,
+        expense,
+        balance,
+      };
+    });
+
+  // Truncate all trailing months below that are 0 0 0
+  const lastActiveIdx = yearlyMonthBreakdown.reduce(
+    (lastIdx, row, idx) => (row.income !== 0 || row.expense !== 0 ? idx : lastIdx),
+    0
+  );
+  const visibleYearlyBreakdown = yearlyMonthBreakdown.slice(0, lastActiveIdx + 1);
 
   const loadData = useCallback(() => {
     const expiring = RecurringRepo.getExpiringWithin(2);
@@ -381,6 +417,49 @@ export const BudgetScreen: React.FC = () => {
       {/* Tab 2: Monthly Overview */}
       {activeTab === 'monthly' && (
         <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Monthly KPI Summary Card */}
+          <View style={styles.kpiCard}>
+            <View style={styles.kpiCol}>
+              <Text style={styles.kpiLabel}>Income</Text>
+              <Text
+                style={[styles.kpiValue, { color: THEME.accent.income }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {formatCurrency(monthlyIncome)}
+              </Text>
+            </View>
+
+            <View style={styles.kpiDivider} />
+
+            <View style={styles.kpiCol}>
+              <Text style={styles.kpiLabel}>Expenses</Text>
+              <Text
+                style={[styles.kpiValue, { color: THEME.accent.expense }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {formatCurrency(monthlyExpense)}
+              </Text>
+            </View>
+
+            <View style={styles.kpiDivider} />
+
+            <View style={styles.kpiCol}>
+              <Text style={styles.kpiLabel}>Balance</Text>
+              <Text
+                style={[
+                  styles.kpiValue,
+                  { color: monthlyBalance >= 0 ? THEME.accent.income : THEME.accent.expense },
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {formatBalance(monthlyBalance)}
+              </Text>
+            </View>
+          </View>
+
           {/* Income Distribution (Pie Chart) */}
           <View style={styles.chartCard}>
             <View style={styles.cardTitleRow}>
@@ -409,6 +488,49 @@ export const BudgetScreen: React.FC = () => {
       {/* Tab 3: Yearly View with Individual Values & Breakdown */}
       {activeTab === 'yearly' && (
         <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Yearly 12M KPI Summary Card */}
+          <View style={styles.kpiCard}>
+            <View style={styles.kpiCol}>
+              <Text style={styles.kpiLabel}>12M Income</Text>
+              <Text
+                style={[styles.kpiValue, { color: THEME.accent.income }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {formatCurrency(yearlyIncomeTotal)}
+              </Text>
+            </View>
+
+            <View style={styles.kpiDivider} />
+
+            <View style={styles.kpiCol}>
+              <Text style={styles.kpiLabel}>12M Expenses</Text>
+              <Text
+                style={[styles.kpiValue, { color: THEME.accent.expense }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {formatCurrency(yearlyExpenseTotal)}
+              </Text>
+            </View>
+
+            <View style={styles.kpiDivider} />
+
+            <View style={styles.kpiCol}>
+              <Text style={styles.kpiLabel}>12M Balance</Text>
+              <Text
+                style={[
+                  styles.kpiValue,
+                  { color: yearlyBalance >= 0 ? THEME.accent.income : THEME.accent.expense },
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {formatBalance(yearlyBalance)}
+              </Text>
+            </View>
+          </View>
+
           {/* Income Stacked Bar Chart */}
           <View style={styles.chartCard}>
             <View style={styles.cardTitleRow}>
@@ -436,6 +558,50 @@ export const BudgetScreen: React.FC = () => {
               valuePrefix="Rs. "
               onPointPress={(pt) => pt.rawKey && handleYearlyMonthPress(pt.rawKey)}
             />
+          </View>
+
+          {/* 12-Month Balance Breakdown Table */}
+          <View style={styles.chartCard}>
+            <View style={styles.cardTitleRow}>
+              <Scale size={16} color={THEME.text.secondary} style={{ marginRight: 6 }} />
+              <Text style={styles.cardHeaderTitle}>Monthly Balance Breakdown</Text>
+            </View>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableColHeader, { flex: 1.1 }]}>Month</Text>
+              <Text style={[styles.tableColHeader, { flex: 1.3, textAlign: 'right' }]}>Income</Text>
+              <Text style={[styles.tableColHeader, { flex: 1.3, textAlign: 'right' }]}>Expenses</Text>
+              <Text style={[styles.tableColHeader, { flex: 1.4, textAlign: 'right' }]}>Balance</Text>
+            </View>
+            {visibleYearlyBreakdown.map((row) => (
+              <AnimatedPressable
+                key={row.key}
+                style={[
+                  styles.tableRow,
+                  row.key === selectedMonthKey && styles.tableRowSelected,
+                ]}
+                onPress={() => handleYearlyMonthPress(row.key)}
+                scaleTo={0.98}
+              >
+                <Text style={[styles.tableMonthText, { flex: 1.1 }]}>{row.label}</Text>
+                <Text style={[styles.tableIncomeText, { flex: 1.3 }]}>
+                  {formatCurrency(row.income)}
+                </Text>
+                <Text style={[styles.tableExpenseText, { flex: 1.3 }]}>
+                  {formatCurrency(row.expense)}
+                </Text>
+                <Text
+                  style={[
+                    styles.tableBalanceText,
+                    {
+                      flex: 1.4,
+                      color: row.balance >= 0 ? THEME.accent.income : THEME.accent.expense,
+                    },
+                  ]}
+                >
+                  {formatBalance(row.balance)}
+                </Text>
+              </AnimatedPressable>
+            ))}
           </View>
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -776,5 +942,89 @@ const styles = StyleSheet.create({
     color: THEME.accent.blue,
     fontSize: 12,
     fontWeight: '600',
+  },
+  kpiCard: {
+    backgroundColor: THEME.bg.card,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: THEME.bg.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  kpiCol: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  kpiDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: THEME.bg.border,
+  },
+  kpiLabel: {
+    color: THEME.text.secondary,
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  kpiValue: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.bg.border,
+    marginBottom: 4,
+    paddingHorizontal: 4,
+  },
+  tableColHeader: {
+    color: THEME.text.tertiary,
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 6,
+    paddingHorizontal: 4,
+  },
+  tableRowSelected: {
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+  },
+  tableMonthText: {
+    color: THEME.text.primary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  tableIncomeText: {
+    color: THEME.accent.income,
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'right',
+  },
+  tableExpenseText: {
+    color: THEME.accent.expense,
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'right',
+  },
+  tableBalanceText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    textAlign: 'right',
   },
 });

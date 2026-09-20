@@ -136,8 +136,16 @@ export function getPast12Weeks(todayDateStr?: string): { start: string; end: str
 
 export function formatCurrency(amount: number): string {
   const rounded = Math.round(amount);
-  const parts = rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return `Rs. ${parts}`;
+  const isNegative = rounded < 0;
+  const parts = Math.abs(rounded).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return isNegative ? `-Rs. ${parts}` : `Rs. ${parts}`;
+}
+
+export function formatBalance(amount: number): string {
+  if (amount > 0) {
+    return `+${formatCurrency(amount)}`;
+  }
+  return formatCurrency(amount);
 }
 
 export function formatWeekInterval(startStr: string, endStr: string): string {
